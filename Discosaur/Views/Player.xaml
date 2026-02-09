@@ -3,9 +3,14 @@
     x:Class="Discosaur.Views.Player"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:Discosaur.Converters"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <converters:BoolToPlayPauseGlyphConverter x:Key="PlayPauseGlyphConverter" />
+    </UserControl.Resources>
 
     <StackPanel Padding="16" Spacing="8">
         <TextBlock
@@ -14,9 +19,42 @@
             FontSize="16"
             HorizontalAlignment="Center" />
 
+        <!-- Progress bar with time labels -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock
+                x:Name="CurrentTimeText"
+                Grid.Column="0"
+                Text="0:00"
+                FontSize="12"
+                VerticalAlignment="Center"
+                Margin="0,0,8,0" />
+
+            <Slider
+                x:Name="ProgressSlider"
+                Grid.Column="1"
+                Minimum="0"
+                Maximum="100"
+                Value="0"
+                VerticalAlignment="Center" />
+
+            <TextBlock
+                x:Name="TotalTimeText"
+                Grid.Column="2"
+                Text="0:00"
+                FontSize="12"
+                VerticalAlignment="Center"
+                Margin="8,0,0,0" />
+        </Grid>
+
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
-            <Button x:Name="PlayPauseButton" Click="PlayPause_Click" Width="48" Height="48">
-                <FontIcon x:Name="PlayPauseIcon" Glyph="&#xE768;" />
+            <Button Click="PlayPause_Click" Width="48" Height="48">
+                <FontIcon Glyph="{x:Bind ViewModel.IsPlaying, Converter={StaticResource PlayPauseGlyphConverter}, Mode=OneWay}" />
             </Button>
             <Button Click="Stop_Click" Width="48" Height="48">
                 <FontIcon Glyph="&#xE71A;" />

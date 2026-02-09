@@ -1,6 +1,7 @@
 ﻿using System;
 using Discosaur.Services;
 using Discosaur.ViewModels;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using WinRT.Interop;
 
@@ -13,6 +14,7 @@ namespace Discosaur
         public static IntPtr MainWindowHandle => WindowNative.GetWindowHandle(MainWindow);
 
         public static MainViewModel ViewModel { get; private set; } = null!;
+        public static PlayerViewModel PlayerViewModel { get; private set; } = null!;
         public static AudioPlayerService AudioPlayer { get; private set; } = null!;
         public static LibraryService LibraryService { get; private set; } = null!;
 
@@ -29,6 +31,7 @@ namespace Discosaur
             AudioPlayer = new AudioPlayerService();
             LibraryService = new LibraryService();
             ViewModel = new MainViewModel(AudioPlayer, LibraryService);
+            PlayerViewModel = new PlayerViewModel(AudioPlayer, DispatcherQueue.GetForCurrentThread());
 
             _window = new MainWindow();
             MainWindow = _window;

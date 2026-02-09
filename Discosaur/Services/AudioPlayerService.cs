@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Discosaur.Models;
 using NAudio.Wave;
 
@@ -8,19 +9,28 @@ public class AudioPlayerService
 {
     private WaveOutEvent? _waveOut;
     private MediaFoundationReader? _reader;
+    private bool _stoppingManually;
 
     public Track? CurrentTrack { get; private set; }
     public bool IsPlaying => _waveOut?.PlaybackState == PlaybackState.Playing;
     public bool IsPaused => _waveOut?.PlaybackState == PlaybackState.Paused;
 
-    public event Action? PlaybackStateChanged;
+    public TimeSpan CurrentPosition => _reader?.CurrentTime ?? TimeSpan.Zero;
+    public TimeSpan TotalDuration => _reader?.TotalTime ?? TimeSpan.Zero;
 
-    public void Play(Track track)
+    public event Action? PlaybackStateChanged;
+    public event Action? TrackEnded;
+
+    public async Task PlayAsync(Track track)
     {
         Stop();
 
         CurrentTrack = track;
-        _reader = new MediaFoundationReader(track.FilePath);
+
+        // Initialize the reader off the UI thread since MediaFoundationReader does I/O
+        var reader = await Task.Run(() => new MediaFoundationReader(track.FilePath));
+
+        _reader = reader;
         _waveOut = new WaveOutEvent();
         _waveOut.Init(_reader);
         _waveOut.PlaybackStopped += OnPlaybackStopped;
@@ -43,6 +53,8 @@ public class AudioPlayerService
 
     public void Stop()
     {
+        _stoppingManually = true;
+
         if (_waveOut != null)
         {
             _waveOut.PlaybackStopped -= OnPlaybackStopped;
@@ -58,11 +70,25 @@ public class AudioPlayerService
         }
 
         CurrentTrack = null;
+        _stoppingManually = false;
         PlaybackStateChanged?.Invoke();
+    }
+
+    public void Seek(TimeSpan position)
+    {
+        if (_reader != null)
+        {
+            _reader.CurrentTime = position;
+        }
     }
 
     private void OnPlaybackStopped(object? sender, StoppedEventArgs e)
     {
+        if (!_stoppingManually)
+        {
+            TrackEnded?.Invoke();
+        }
+
         PlaybackStateChanged?.Invoke();
     }
 }
