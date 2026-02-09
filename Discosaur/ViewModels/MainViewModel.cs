@@ -12,6 +12,7 @@ public partial class MainViewModel : ObservableObject
     private readonly LibraryService _libraryService;
 
     public ObservableCollection<Album> Library { get; } = [];
+    public ObservableCollection<Track> Uncategorized { get; } = [];
 
     [ObservableProperty]
     private Track? _currentTrack;
@@ -35,10 +36,22 @@ public partial class MainViewModel : ObservableObject
 
     public void AddFolderToLibrary(string folderPath)
     {
-        var album = _libraryService.ScanFolder(folderPath);
-        if (album.Tracks.Count > 0)
+        var albums = _libraryService.ScanFolder(folderPath);
+
+        foreach (var album in albums)
         {
-            Library.Add(album);
+            if (album.Tracks.Count == 0)
+                continue;
+
+            if (album.IsUncategorized)
+            {
+                foreach (var track in album.Tracks)
+                    Uncategorized.Add(track);
+            }
+            else
+            {
+                Library.Add(album);
+            }
         }
     }
 
