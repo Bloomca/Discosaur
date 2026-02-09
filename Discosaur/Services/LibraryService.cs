@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using Discosaur.Models;
@@ -8,25 +11,134 @@ public class LibraryService
 {
     private static readonly string[] SupportedExtensions = [".mp3", ".flac", ".wav", ".m4a", ".ogg", ".wma", ".aac"];
 
-    public Album ScanFolder(string folderPath)
+    private static readonly string[] CoverArtFileNames =
+        ["cover", "artwork", "folder", "front"];
+
+    private static readonly string[] CoverArtExtensions = [".jpg", ".jpeg", ".png"];
+
+    public List<Album> ScanFolder(string folderPath)
     {
-        var folderName = Path.GetFileName(folderPath) ?? folderPath;
-
-        var album = new Album { Name = folderName };
-
         var files = Directory.GetFiles(folderPath)
-            .Where(f => SupportedExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
-            .OrderBy(f => f);
+            .Where(f => SupportedExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()));
+
+        var tracks = new List<Track>();
 
         foreach (var file in files)
         {
-            album.Tracks.Add(new Track
-            {
-                FilePath = file,
-                FileName = Path.GetFileName(file)
-            });
+            var track = ParseTrack(file);
+            tracks.Add(track);
         }
 
-        return album;
+        var albums = GroupIntoAlbums(tracks);
+
+        var coverArtPath = FindCoverArt(folderPath);
+        if (coverArtPath != null)
+        {
+            foreach (var album in albums)
+            {
+                album.CoverArtPath ??= coverArtPath;
+            }
+        }
+
+        return albums;
+    }
+
+    private static Track ParseTrack(string filePath)
+    {
+        var track = new Track
+        {
+            FilePath = filePath,
+            FileName = Path.GetFileName(filePath),
+            Title = Path.GetFileNameWithoutExtension(filePath)
+        };
+
+        try
+        {
+            using var tagFile = TagLib.File.Create(filePath);
+            var tag = tagFile.Tag;
+
+            if (!string.IsNullOrWhiteSpace(tag.Title))
+                track.Title = tag.Title;
+
+            if (!string.IsNullOrWhiteSpace(tag.FirstPerformer))
+                track.Artist = tag.FirstPerformer;
+
+            if (!string.IsNullOrWhiteSpace(tag.Album))
+                track.AlbumTitle = tag.Album;
+
+            if (tag.Track > 0)
+                track.TrackNumber = tag.Track;
+
+            if (tag.Year > 0)
+                track.Year = tag.Year;
+
+            if (!string.IsNullOrWhiteSpace(tag.FirstGenre))
+                track.Genre = tag.FirstGenre;
+
+            if (tagFile.Properties?.Duration > TimeSpan.Zero)
+                track.Duration = tagFile.Properties.Duration;
+        }
+        catch
+        {
+            // Metadata parsing failed — keep defaults (Title = filename, no album)
+        }
+
+        return track;
+    }
+
+    private static List<Album> GroupIntoAlbums(List<Track> tracks)
+    {
+        var albums = new List<Album>();
+
+        var grouped = tracks.GroupBy(t => t.AlbumTitle ?? string.Empty);
+
+        foreach (var group in grouped)
+        {
+            var sortedTracks = group
+                .OrderBy(t => t.TrackNumber ?? uint.MaxValue)
+                .ThenBy(t => t.FileName)
+                .ToList();
+
+            if (string.IsNullOrEmpty(group.Key))
+            {
+                var uncategorized = new Album { Name = Album.UncategorizedName };
+                foreach (var track in sortedTracks)
+                    uncategorized.Tracks.Add(track);
+                albums.Add(uncategorized);
+            }
+            else
+            {
+                var firstTrack = sortedTracks.First();
+                var album = new Album
+                {
+                    Name = group.Key,
+                    Artist = firstTrack.Artist,
+                    Year = firstTrack.Year,
+                };
+
+                foreach (var track in sortedTracks)
+                    album.Tracks.Add(track);
+
+                albums.Add(album);
+            }
+        }
+
+        return albums;
+    }
+
+    private static string? FindCoverArt(string folderPath)
+    {
+        var filesInFolder = Directory.GetFiles(folderPath);
+
+        foreach (var file in filesInFolder)
+        {
+            var name = Path.GetFileNameWithoutExtension(file).ToLowerInvariant();
+            var ext = Path.GetExtension(file).ToLowerInvariant();
+
+            if (CoverArtFileNames.Contains(name) && CoverArtExtensions.Contains(ext))
+                return file;
+        }
+
+        return null;
     }
 }
