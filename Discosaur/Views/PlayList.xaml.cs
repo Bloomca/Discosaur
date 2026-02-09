@@ -1,35 +1,30 @@
+using System;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Navigation;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
+using Microsoft.Windows.Storage.Pickers;
+using static Microsoft.UI.Win32Interop;
 
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
+namespace Discosaur.Views;
 
-namespace Discosaur.Views
+public sealed partial class PlayList : UserControl
 {
-    public sealed partial class PlayList : UserControl
+    public PlayList()
     {
-        public PlayList()
-        {
-            InitializeComponent();
-        }
+        InitializeComponent();
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        AlbumsControl.ItemsSource = App.ViewModel.Library;
+    }
+
+    private async void AddFolder_Click(object sender, RoutedEventArgs e)
+    {
+        var windowId = GetWindowIdFromWindow(App.MainWindowHandle);
+        var folderPicker = new FolderPicker(windowId);
+
+        var folder = await folderPicker.PickSingleFolderAsync();
+
+        if (folder != null)
         {
-            // 1. Open a dialog to select a folder
-            // 2. Read that folder
-            // 3. Probably read metadata of that album
+            App.ViewModel.AddFolderToLibrary(folder.Path);
         }
     }
 }
