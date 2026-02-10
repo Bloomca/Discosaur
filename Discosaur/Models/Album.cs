@@ -17,4 +17,23 @@ public class Album
     public uint? Year { get; set; }
     public string? CoverArtPath { get; set; }
     public ObservableCollection<Track> Tracks { get; set; } = [];
+
+    public string DisplayName
+    {
+        get
+        {
+            if (IsUncategorized)
+                return UncategorizedName;
+
+            var result = Name;
+
+            if (!string.IsNullOrEmpty(Artist))
+                result += $" by {Artist}";
+
+            if (Year.HasValue)
+                result += $" ({Year.Value})";
+
+            return result;
+        }
+    }
 }

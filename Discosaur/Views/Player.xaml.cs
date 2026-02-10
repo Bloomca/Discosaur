@@ -43,7 +43,7 @@ public sealed partial class Player : UserControl
 
     private void UpdateTrackName()
     {
-        TrackNameText.Text = ViewModel.CurrentTrack?.FileName ?? "No track playing";
+        TrackNameText.Text = ViewModel.CurrentTrack?.Title ?? "No track playing";
     }
 
     private void UpdateProgress()
