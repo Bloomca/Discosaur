@@ -15,6 +15,7 @@ public class Album
     public string Name { get; set; } = string.Empty;
     public string? Artist { get; set; }
     public uint? Year { get; set; }
+    public string? FolderToken { get; set; }
     public string? CoverArtPath { get; set; }
     public ObservableCollection<Track> Tracks { get; set; } = [];
 

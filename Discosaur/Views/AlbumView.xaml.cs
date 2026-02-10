@@ -31,6 +31,8 @@ public sealed partial class AlbumView : UserControl
         InitAccentBrushes();
         App.ViewModel.SelectedTracks.CollectionChanged += (_, _) => UpdateSelectionVisuals();
         App.ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+
+        UpdateSelectionVisuals();
     }
 
     private static void InitAccentBrushes()

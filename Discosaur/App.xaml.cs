@@ -17,12 +17,26 @@ namespace Discosaur
         public static PlayerViewModel PlayerViewModel { get; private set; } = null!;
         public static AudioPlayerService AudioPlayer { get; private set; } = null!;
         public static LibraryService LibraryService { get; private set; } = null!;
+        public static StatePersisterService StatePersister { get; private set; } = null!;
 
         private Window? _window;
 
         public App()
         {
             InitializeComponent();
+            UnhandledException += (s, e) =>
+            {
+                System.Diagnostics.Debug.WriteLine($"UNHANDLED: {e.Exception}");
+                e.Handled = true;
+            };
+            AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+            {
+                System.Diagnostics.Debug.WriteLine($"APPDOMAIN: {e.ExceptionObject}");
+            };
+            System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (s, e) =>
+            {
+                System.Diagnostics.Debug.WriteLine($"TASK: {e.Exception}");
+            };
         }
 
         protected override void OnLaunched(LaunchActivatedEventArgs args)
@@ -33,10 +47,19 @@ namespace Discosaur
             ViewModel = new MainViewModel(AudioPlayer, LibraryService);
             PlayerViewModel = new PlayerViewModel(AudioPlayer, DispatcherQueue.GetForCurrentThread());
 
+            StatePersister = new StatePersisterService();
+            RestoreState();
+
             _window = new MainWindow();
             MainWindow = _window;
             _window.ExtendsContentIntoTitleBar = true;
             _window.Activate();
+        }
+
+        private async void RestoreState()
+        {
+            await StatePersister.LoadAndRestoreAsync();
+            StatePersister.SetReady();
         }
     }
 }

@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Discosaur.Models;
 using Discosaur.Services;
+using Windows.Storage.AccessCache;
 
 namespace Discosaur.ViewModels;
 
@@ -59,6 +60,7 @@ public partial class MainViewModel : ObservableObject
         CurrentAlbumCoverArtPath = FindAlbumForTrack(CurrentTrack)?.CoverArtPath;
         OnPropertyChanged(nameof(NextTrackTitle));
         OnPropertyChanged(nameof(PreviousTrackTitle));
+        App.StatePersister.ScheduleSave();
     }
 
     private async void OnTrackEnded()
@@ -90,7 +92,7 @@ public partial class MainViewModel : ObservableObject
             _audioPlayer.Stop();
     }
 
-    public void AddFolderToLibrary(string folderPath)
+    public void AddFolderToLibrary(string folderPath, string? folderToken = null)
     {
         var albums = _libraryService.ScanFolder(folderPath);
 
@@ -106,9 +108,12 @@ public partial class MainViewModel : ObservableObject
             }
             else
             {
+                album.FolderToken = folderToken;
                 Library.Add(album);
             }
         }
+
+        App.StatePersister.ScheduleSave();
     }
 
     // --- Selection ---
@@ -209,7 +214,18 @@ public partial class MainViewModel : ObservableObject
             if (Library[i].Tracks.Remove(trackToDelete))
             {
                 if (Library[i].Tracks.Count == 0)
+                {
+                    var removedAlbum = Library[i];
                     Library.RemoveAt(i);
+
+                    // Release FutureAccessList token if no other album uses it
+                    if (!string.IsNullOrEmpty(removedAlbum.FolderToken)
+                        && !Library.Any(a => a.FolderToken == removedAlbum.FolderToken))
+                    {
+                        try { StorageApplicationPermissions.FutureAccessList.Remove(removedAlbum.FolderToken); }
+                        catch { }
+                    }
+                }
                 break;
             }
         }
@@ -228,6 +244,8 @@ public partial class MainViewModel : ObservableObject
             else
                 _audioPlayer.Stop();
         }
+
+        App.StatePersister.ScheduleSave();
     }
 
     // --- Playback ---
@@ -251,7 +269,7 @@ public partial class MainViewModel : ObservableObject
         }
         else
         {
-            var firstTrack = Library.FirstOrDefault()?.Tracks.FirstOrDefault();
+            var firstTrack = CurrentTrack ?? Library.FirstOrDefault()?.Tracks.FirstOrDefault();
             if (firstTrack != null)
             {
                 await _audioPlayer.PlayAsync(firstTrack);
@@ -263,6 +281,7 @@ public partial class MainViewModel : ObservableObject
     private void Stop()
     {
         _audioPlayer.Stop();
+        App.StatePersister.ScheduleSave();
     }
 
     [RelayCommand]
@@ -332,6 +351,24 @@ public partial class MainViewModel : ObservableObject
     private void ToggleAlwaysOnTop()
     {
         IsAlwaysOnTop = !IsAlwaysOnTop;
+    }
+
+    // --- Lifecycle ---
+
+    public void Shutdown()
+    {
+        _audioPlayer.PlaybackStateChanged -= OnPlaybackStateChanged;
+        _audioPlayer.TrackEnded -= OnTrackEnded;
+    }
+
+    // --- Display (used by restore) ---
+
+    public void SetCurrentTrackDisplay(Track track)
+    {
+        CurrentTrack = track;
+        CurrentAlbumCoverArtPath = FindAlbumForTrack(track)?.CoverArtPath;
+        OnPropertyChanged(nameof(NextTrackTitle));
+        OnPropertyChanged(nameof(PreviousTrackTitle));
     }
 
     // --- Helpers ---

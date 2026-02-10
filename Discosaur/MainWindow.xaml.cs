@@ -17,6 +17,14 @@ public sealed partial class MainWindow : Window
         AppWindow.Resize(new SizeInt32(DefaultWidth, ExpandedHeight));
 
         App.ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+        Closed += MainWindow_Closed;
+    }
+
+    private void MainWindow_Closed(object sender, WindowEventArgs args)
+    {
+        App.ViewModel.Shutdown();       // Disconnect events — prevents PropertyChanged hitting torn-down UI
+        App.StatePersister.Flush();     // Save state (CurrentTrack still set)
+        App.AudioPlayer.Stop();         // Stop audio — events fire but nobody's listening
     }
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)

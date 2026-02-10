@@ -3,6 +3,8 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.Windows.Storage.Pickers;
+using Windows.Storage;
+using Windows.Storage.AccessCache;
 using Windows.System;
 using static Microsoft.UI.Win32Interop;
 
@@ -64,7 +66,9 @@ public sealed partial class PlayList : UserControl
 
         if (folder != null)
         {
-            App.ViewModel.AddFolderToLibrary(folder.Path);
+            var storageFolder = await StorageFolder.GetFolderFromPathAsync(folder.Path);
+            var token = StorageApplicationPermissions.FutureAccessList.Add(storageFolder);
+            App.ViewModel.AddFolderToLibrary(folder.Path, token);
         }
     }
 }

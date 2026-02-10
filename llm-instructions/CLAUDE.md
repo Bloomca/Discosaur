@@ -17,6 +17,7 @@ Service Locator via static properties on `App`. All singletons created in `App.O
 ```
 App.AudioPlayer      → AudioPlayerService
 App.LibraryService   → LibraryService
+App.StatePersister   → StatePersisterService
 App.ViewModel        → MainViewModel(AudioPlayer, LibraryService)
 App.PlayerViewModel  → PlayerViewModel(AudioPlayer, DispatcherQueue)
 App.MainWindow       → Window
@@ -30,9 +31,11 @@ Views access everything through these static properties (no DI container).
 | File | Purpose |
 |------|---------|
 | `Models/Track.cs` | Single audio track with metadata (title, artist, album, duration, etc.) |
-| `Models/Album.cs` | Album grouping tracks; has computed `DisplayName` and `IsUncategorized` flag |
+| `Models/Album.cs` | Album grouping tracks; has computed `DisplayName`, `IsUncategorized` flag, and `FolderToken` for FutureAccessList persistence |
+| `Models/AppState.cs` | JSON DTO classes for persistence: `AppState`, `PersistedAlbum`, `PersistedTrack`, `PersistedCurrentTrack` |
 | `Services/AudioPlayerService.cs` | NAudio playback engine: async play, pause, stop, seek. Fires `PlaybackStateChanged` and `TrackEnded` events |
 | `Services/LibraryService.cs` | Scans folders for audio files, parses metadata via TagLib, groups into albums, detects cover art |
+| `Services/StatePersisterService.cs` | Persists playlist and current track to JSON in LocalFolder; debounced save (500ms), sync flush on close, async load/restore with FutureAccessList token resolution |
 | `ViewModels/MainViewModel.cs` | Central app state: library collection, selection, playback commands, track navigation helpers, auto-advance on track end |
 | `ViewModels/PlayerViewModel.cs` | Progress tracking: polls AudioPlayer on 500ms timer, updates percent/time text, handles seek |
 | `Views/Player.xaml/.cs` | Player controls UI: track name, progress slider with seek, play/pause + stop buttons |
@@ -44,10 +47,11 @@ Views access everything through these static properties (no DI container).
 
 ## Event flow
 
-1. **Folder scan**: PlayList → `MainViewModel.AddFolderToLibrary()` → LibraryService → albums added to `Library` observable collection → UI auto-updates
+1. **Folder scan**: PlayList → FutureAccessList stores token → `MainViewModel.AddFolderToLibrary(path, token)` → LibraryService → albums (with FolderToken) added to `Library` observable collection → UI auto-updates → StatePersister.ScheduleSave()
 2. **Play track**: AlbumView double-tap → `MainViewModel.PlayTrackCommand` → `AudioPlayerService.PlayAsync()` → fires `PlaybackStateChanged` → MainViewModel updates `CurrentTrack`/`IsPlaying`/`CoverArtPath` → all views react via `PropertyChanged`
 3. **Progress**: PlayerViewModel polls AudioPlayer on 500ms timer → updates `ProgressPercent`/time text → Player view updates slider
 4. **Track ends**: NAudio `PlaybackStopped` → AudioPlayerService fires `TrackEnded` → MainViewModel calls `PlayNextTrack()` → cycle repeats
+5. **Persistence**: State changes (add folder, delete track, playback change, stop) → `StatePersister.ScheduleSave()` (debounced 500ms) → JSON written to `ApplicationData.Current.LocalFolder`. On close → `Flush()` (sync). On startup → `LoadAndRestoreAsync()` resolves FutureAccessList tokens → rebuilds Library → restores current track display without playback
 
 ## Window layout (MainWindow.xaml)
 
@@ -68,21 +72,22 @@ Three-row vertical Grid (540x800, `ExtendsContentIntoTitleBar`):
 
 ## Build and run
 
-`dotnet build Discosaur/Discosaur.csproj`. Launch profiles in `Properties/launchSettings.json`: packaged (MSIX) or unpackaged. Platforms: x86, x64, ARM64.
+`dotnet build Discosaur/Discosaur.csproj -p:Platform=x64`. Launch profiles in `Properties/launchSettings.json`: packaged (MSIX) or unpackaged. Platforms: x86, x64, ARM64.
 
-## Implemented specs (1–4)
+## Implemented specs (1–6)
 
 1. **Basic structure**: MVVM skeleton, services, vertical layout
 2. **Metadata**: TagLib parsing, album grouping, cover art detection
 3. **Playback**: async play, pause/seek, progress slider, auto-advance
 4. **Metadata in UX**: display names, sorting, artwork, keyboard nav, selection, deletion
+5. **Improve UI**: prev/next/repeat/shuffle buttons, collapse/expand, always-on-top pin, playing-track highlight
+6. **Persist data**: JSON state file in LocalFolder with debounced writes, FutureAccessList tokens for folder access across restarts, current track restore without playback
 
 ## Features to implement
 
 Future additions with their own specifications:
 
 - Tray menu on window close
-- Persist playlist to JSON
 - Library scanning, sorting/filtering by genre/artist
 - Dominant colour extraction from artwork for theming
 - Frequency/amplitude visualization on progress bar
