@@ -1,7 +1,7 @@
 using Discosaur.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Input;
 
 namespace Discosaur.Views;
 
@@ -9,7 +9,7 @@ public sealed partial class Player : UserControl
 {
     public MainViewModel ViewModel => App.ViewModel;
 
-    private bool _isUpdatingSlider;
+    private bool _isUserInteracting;
 
     public Player()
     {
@@ -17,7 +17,13 @@ public sealed partial class Player : UserControl
 
         App.ViewModel.PropertyChanged += ViewModel_PropertyChanged;
         App.PlayerViewModel.PropertyChanged += PlayerViewModel_PropertyChanged;
-        ProgressSlider.ValueChanged += ProgressSlider_ValueChanged;
+
+        ProgressSlider.AddHandler(PointerPressedEvent,
+            new PointerEventHandler(ProgressSlider_PointerPressed), true);
+        ProgressSlider.AddHandler(PointerReleasedEvent,
+            new PointerEventHandler(ProgressSlider_PointerReleased), true);
+        ProgressSlider.AddHandler(PointerCanceledEvent,
+            new PointerEventHandler(ProgressSlider_PointerCanceled), true);
 
         UpdateTrackName();
     }
@@ -44,20 +50,31 @@ public sealed partial class Player : UserControl
     {
         var pvm = App.PlayerViewModel;
 
-        _isUpdatingSlider = true;
-        ProgressSlider.Value = pvm.ProgressPercent;
-        _isUpdatingSlider = false;
+        if (!_isUserInteracting)
+        {
+            ProgressSlider.Value = pvm.ProgressPercent;
+        }
 
-        CurrentTimeText.Text = pvm.CurrentTimeText;
-        TotalTimeText.Text = pvm.TotalTimeText;
+        TimeText.Text = $"{pvm.CurrentTimeText}/{pvm.TotalTimeText}";
     }
 
-    private void ProgressSlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+    private void ProgressSlider_PointerPressed(object sender, PointerRoutedEventArgs e)
     {
-        if (!_isUpdatingSlider)
+        _isUserInteracting = true;
+    }
+
+    private void ProgressSlider_PointerReleased(object sender, PointerRoutedEventArgs e)
+    {
+        if (_isUserInteracting)
         {
-            App.PlayerViewModel.SeekToPercent(e.NewValue);
+            _isUserInteracting = false;
+            App.PlayerViewModel.SeekToPercent(ProgressSlider.Value);
         }
+    }
+
+    private void ProgressSlider_PointerCanceled(object sender, PointerRoutedEventArgs e)
+    {
+        _isUserInteracting = false;
     }
 
     private void PlayPause_Click(object sender, RoutedEventArgs e)

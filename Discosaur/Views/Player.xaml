@@ -10,6 +10,7 @@
 
     <UserControl.Resources>
         <converters:BoolToPlayPauseGlyphConverter x:Key="PlayPauseGlyphConverter" />
+        <converters:SliderPercentToTimeConverter x:Key="SliderTimeConverter" />
     </UserControl.Resources>
 
     <StackPanel Padding="16" Spacing="8">
@@ -22,32 +23,25 @@
         <!-- Progress bar with time labels -->
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <TextBlock
-                x:Name="CurrentTimeText"
-                Grid.Column="0"
-                Text="0:00"
-                FontSize="12"
-                VerticalAlignment="Center"
-                Margin="0,0,8,0" />
-
             <Slider
                 x:Name="ProgressSlider"
-                Grid.Column="1"
+                Grid.Column="0"
                 Minimum="0"
                 Maximum="100"
                 Value="0"
+                ThumbToolTipValueConverter="{StaticResource SliderTimeConverter}"
                 VerticalAlignment="Center" />
 
             <TextBlock
-                x:Name="TotalTimeText"
-                Grid.Column="2"
-                Text="0:00"
+                x:Name="TimeText"
+                Grid.Column="1"
+                Text="0:00/0:00"
                 FontSize="12"
+                FontFamily="Consolas"
                 VerticalAlignment="Center"
                 Margin="8,0,0,0" />
         </Grid>
