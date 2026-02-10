@@ -1,3 +1,4 @@
+using Discosaur.Models;
 using Discosaur.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -26,13 +27,27 @@ public sealed partial class Player : UserControl
             new PointerEventHandler(ProgressSlider_PointerCanceled), true);
 
         UpdateTrackName();
+        UpdateTooltips();
     }
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(MainViewModel.CurrentTrack))
+        switch (e.PropertyName)
         {
-            DispatcherQueue.TryEnqueue(UpdateTrackName);
+            case nameof(MainViewModel.CurrentTrack):
+                DispatcherQueue.TryEnqueue(UpdateTrackName);
+                DispatcherQueue.TryEnqueue(UpdateTooltips);
+                break;
+            case nameof(MainViewModel.RepeatMode):
+                DispatcherQueue.TryEnqueue(UpdateRepeatVisual);
+                break;
+            case nameof(MainViewModel.IsShuffleEnabled):
+                DispatcherQueue.TryEnqueue(UpdateShuffleVisual);
+                DispatcherQueue.TryEnqueue(UpdateTooltips);
+                break;
+            case nameof(MainViewModel.IsLibraryExpanded):
+                DispatcherQueue.TryEnqueue(UpdateCollapseVisual);
+                break;
         }
     }
 
@@ -44,6 +59,49 @@ public sealed partial class Player : UserControl
     private void UpdateTrackName()
     {
         TrackNameText.Text = ViewModel.CurrentTrack?.Title ?? "No track playing";
+    }
+
+    private void UpdateTooltips()
+    {
+        if (ViewModel.IsShuffleEnabled)
+        {
+            ToolTipService.SetToolTip(PreviousButton, "Random track");
+            ToolTipService.SetToolTip(NextButton, "Random track");
+        }
+        else
+        {
+            ToolTipService.SetToolTip(PreviousButton, ViewModel.PreviousTrackTitle ?? "Previous track");
+            ToolTipService.SetToolTip(NextButton, ViewModel.NextTrackTitle ?? "Next track");
+        }
+    }
+
+    private void UpdateRepeatVisual()
+    {
+        switch (ViewModel.RepeatMode)
+        {
+            case RepeatMode.Off:
+                RepeatIcon.Glyph = "\uE8EE";
+                RepeatIcon.Opacity = 0.4;
+                break;
+            case RepeatMode.Album:
+                RepeatIcon.Glyph = "\uE8EE";
+                RepeatIcon.Opacity = 1.0;
+                break;
+            case RepeatMode.Track:
+                RepeatIcon.Glyph = "\uE8ED";
+                RepeatIcon.Opacity = 1.0;
+                break;
+        }
+    }
+
+    private void UpdateShuffleVisual()
+    {
+        ShuffleIcon.Opacity = ViewModel.IsShuffleEnabled ? 1.0 : 0.4;
+    }
+
+    private void UpdateCollapseVisual()
+    {
+        CollapseIcon.Glyph = ViewModel.IsLibraryExpanded ? "\uE70D" : "\uE70E";
     }
 
     private void UpdateProgress()
@@ -85,5 +143,30 @@ public sealed partial class Player : UserControl
     private void Stop_Click(object sender, RoutedEventArgs e)
     {
         ViewModel.StopCommand.Execute(null);
+    }
+
+    private void Previous_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.PlayPreviousCommand.Execute(null);
+    }
+
+    private void Next_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.PlayNextCommand.Execute(null);
+    }
+
+    private void Repeat_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.CycleRepeatModeCommand.Execute(null);
+    }
+
+    private void Shuffle_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.ToggleShuffleCommand.Execute(null);
+    }
+
+    private void Collapse_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.ToggleLibraryExpandedCommand.Execute(null);
     }
 }

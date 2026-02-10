@@ -1,3 +1,4 @@
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -12,6 +13,7 @@ public partial class MainViewModel : ObservableObject
 {
     private readonly AudioPlayerService _audioPlayer;
     private readonly LibraryService _libraryService;
+    private static readonly Random _random = new();
 
     public ObservableCollection<Album> Library { get; } = [];
     public ObservableCollection<Track> Uncategorized { get; } = [];
@@ -25,6 +27,21 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private string? _currentAlbumCoverArtPath;
+
+    [ObservableProperty]
+    private RepeatMode _repeatMode;
+
+    [ObservableProperty]
+    private bool _isShuffleEnabled;
+
+    [ObservableProperty]
+    private bool _isLibraryExpanded = true;
+
+    [ObservableProperty]
+    private bool _isAlwaysOnTop;
+
+    public string? NextTrackTitle => FindNextTrack(CurrentTrack)?.Title;
+    public string? PreviousTrackTitle => FindPreviousTrack(CurrentTrack)?.Title;
 
     public MainViewModel(AudioPlayerService audioPlayer, LibraryService libraryService)
     {
@@ -40,11 +57,37 @@ public partial class MainViewModel : ObservableObject
         CurrentTrack = _audioPlayer.CurrentTrack;
         IsPlaying = _audioPlayer.IsPlaying;
         CurrentAlbumCoverArtPath = FindAlbumForTrack(CurrentTrack)?.CoverArtPath;
+        OnPropertyChanged(nameof(NextTrackTitle));
+        OnPropertyChanged(nameof(PreviousTrackTitle));
     }
 
-    private void OnTrackEnded()
+    private async void OnTrackEnded()
     {
-        PlayNextTrack();
+        if (RepeatMode == RepeatMode.Track)
+        {
+            if (_audioPlayer.CurrentTrack != null)
+                await _audioPlayer.PlayAsync(_audioPlayer.CurrentTrack);
+            return;
+        }
+
+        if (IsShuffleEnabled)
+        {
+            await PlayRandomTrackAsync();
+            return;
+        }
+
+        var next = FindNextTrack(_audioPlayer.CurrentTrack);
+
+        if (next == null && RepeatMode == RepeatMode.Album)
+        {
+            var album = FindAlbumForTrack(_audioPlayer.CurrentTrack);
+            next = album?.Tracks.FirstOrDefault();
+        }
+
+        if (next != null)
+            await _audioPlayer.PlayAsync(next);
+        else
+            _audioPlayer.Stop();
     }
 
     public void AddFolderToLibrary(string folderPath)
@@ -222,16 +265,88 @@ public partial class MainViewModel : ObservableObject
         _audioPlayer.Stop();
     }
 
-    private async void PlayNextTrack()
+    [RelayCommand]
+    private async Task PlayNext()
     {
+        if (IsShuffleEnabled)
+        {
+            await PlayRandomTrackAsync();
+            return;
+        }
+
         var next = FindNextTrack(_audioPlayer.CurrentTrack);
+
+        if (next == null && RepeatMode == RepeatMode.Album)
+        {
+            var album = FindAlbumForTrack(_audioPlayer.CurrentTrack);
+            next = album?.Tracks.FirstOrDefault();
+        }
+
         if (next != null)
             await _audioPlayer.PlayAsync(next);
-        else
-            _audioPlayer.Stop();
+    }
+
+    [RelayCommand]
+    private async Task PlayPrevious()
+    {
+        var prev = FindPreviousTrack(_audioPlayer.CurrentTrack);
+
+        if (prev == null && RepeatMode == RepeatMode.Album)
+        {
+            var album = FindAlbumForTrack(_audioPlayer.CurrentTrack);
+            prev = album?.Tracks.LastOrDefault();
+        }
+
+        if (prev != null)
+            await _audioPlayer.PlayAsync(prev);
+    }
+
+    [RelayCommand]
+    private void CycleRepeatMode()
+    {
+        RepeatMode = RepeatMode switch
+        {
+            RepeatMode.Off => RepeatMode.Album,
+            RepeatMode.Album => RepeatMode.Track,
+            RepeatMode.Track => RepeatMode.Off,
+            _ => RepeatMode.Off
+        };
+    }
+
+    [RelayCommand]
+    private async Task ToggleShuffle()
+    {
+        IsShuffleEnabled = !IsShuffleEnabled;
+
+        if (IsShuffleEnabled)
+            await PlayRandomTrackAsync();
+    }
+
+    [RelayCommand]
+    private void ToggleLibraryExpanded()
+    {
+        IsLibraryExpanded = !IsLibraryExpanded;
+    }
+
+    [RelayCommand]
+    private void ToggleAlwaysOnTop()
+    {
+        IsAlwaysOnTop = !IsAlwaysOnTop;
     }
 
     // --- Helpers ---
+
+    private async Task PlayRandomTrackAsync()
+    {
+        var allTracks = Library.SelectMany(a => a.Tracks).ToList();
+        if (allTracks.Count == 0) return;
+
+        var candidates = allTracks.Where(t => t != _audioPlayer.CurrentTrack).ToList();
+        if (candidates.Count == 0) candidates = allTracks;
+
+        var pick = candidates[_random.Next(candidates.Count)];
+        await _audioPlayer.PlayAsync(pick);
+    }
 
     private Track? FindNextTrack(Track? current)
     {

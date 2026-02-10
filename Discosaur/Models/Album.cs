@@ -27,11 +27,18 @@ public class Album
 
             var result = Name;
 
-            if (!string.IsNullOrEmpty(Artist))
-                result += $" by {Artist}";
-
-            if (Year.HasValue)
+            if (!string.IsNullOrEmpty(Artist) && Year.HasValue)
+            {
+                result += $" ({Artist}, {Year.Value})";
+            }
+            else if (!string.IsNullOrEmpty(Artist) && !Year.HasValue)
+            {
+                result += $" {Artist}";
+            }
+            else if (Year.HasValue)
+            {
                 result += $" ({Year.Value})";
+            }
 
             return result;
         }

@@ -7,13 +7,30 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Border
-        HorizontalAlignment="Center"
-        Margin="0"
-        Width="300"
-        Height="300">
-        <Image
-            x:Name="CoverArtImage"
-            Stretch="Uniform" />
-    </Border>
+    <Grid>
+        <Border
+            HorizontalAlignment="Center"
+            Margin="0"
+            Width="320"
+            Height="320">
+            <Image
+                x:Name="CoverArtImage"
+                Stretch="Uniform" />
+        </Border>
+
+        <Button
+            x:Name="PinButton"
+            Click="Pin_Click"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Margin="8,8,0,0"
+            Width="32"
+            Height="32"
+            Padding="0"
+            Background="Transparent"
+            BorderBrush="Transparent"
+            CornerRadius="4">
+            <FontIcon x:Name="PinIcon" Glyph="&#xE718;" FontSize="14" />
+        </Button>
+    </Grid>
 </UserControl>

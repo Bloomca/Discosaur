@@ -13,12 +13,14 @@
         <converters:SliderPercentToTimeConverter x:Key="SliderTimeConverter" />
     </UserControl.Resources>
 
-    <StackPanel Padding="16" Spacing="8">
+    <StackPanel Padding="8,4,8,4" Spacing="4">
         <TextBlock
             x:Name="TrackNameText"
             Text="No track playing"
-            FontSize="16"
-            HorizontalAlignment="Center" />
+            FontSize="14"
+            HorizontalAlignment="Center"
+            TextTrimming="CharacterEllipsis"
+            MaxLines="1" />
 
         <!-- Progress bar with time labels -->
         <Grid>
@@ -40,18 +42,40 @@
                 x:Name="TimeText"
                 Grid.Column="1"
                 Text="0:00/0:00"
-                FontSize="12"
+                FontSize="16"
                 FontFamily="Consolas"
                 VerticalAlignment="Center"
                 Margin="8,0,0,0" />
         </Grid>
 
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
-            <Button Click="PlayPause_Click" Width="48" Height="48">
-                <FontIcon Glyph="{x:Bind ViewModel.IsPlaying, Converter={StaticResource PlayPauseGlyphConverter}, Mode=OneWay}" />
+        <!-- Transport controls -->
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="4">
+            <Button x:Name="PreviousButton" Click="Previous_Click" Width="36" Height="36" Padding="0">
+                <FontIcon Glyph="&#xE892;" FontSize="16" />
             </Button>
-            <Button Click="Stop_Click" Width="48" Height="48">
-                <FontIcon Glyph="&#xE71A;" />
+            <Button Click="PlayPause_Click" Width="36" Height="36" Padding="0">
+                <FontIcon Glyph="{x:Bind ViewModel.IsPlaying, Converter={StaticResource PlayPauseGlyphConverter}, Mode=OneWay}" FontSize="16" />
+            </Button>
+            <Button x:Name="NextButton" Click="Next_Click" Width="36" Height="36" Padding="0">
+                <FontIcon Glyph="&#xE893;" FontSize="16" />
+            </Button>
+            <Button Click="Stop_Click" Width="36" Height="36" Padding="0">
+                <FontIcon Glyph="&#xE71A;" FontSize="16" />
+            </Button>
+
+            <Border Width="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="4,8" />
+
+            <Button x:Name="RepeatButton" Click="Repeat_Click" Width="36" Height="36" Padding="0">
+                <FontIcon x:Name="RepeatIcon" Glyph="&#xE8EE;" FontSize="16" Opacity="0.4" />
+            </Button>
+            <Button x:Name="ShuffleButton" Click="Shuffle_Click" Width="36" Height="36" Padding="0">
+                <FontIcon x:Name="ShuffleIcon" Glyph="&#xE8B1;" FontSize="16" Opacity="0.4" />
+            </Button>
+
+            <Border Width="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="4,8" />
+
+            <Button x:Name="CollapseButton" Click="Collapse_Click" Width="36" Height="36" Padding="0">
+                <FontIcon x:Name="CollapseIcon" Glyph="&#xE70D;" FontSize="16" />
             </Button>
         </StackPanel>
     </StackPanel>
