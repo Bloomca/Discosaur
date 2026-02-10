@@ -17,11 +17,11 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
+            <RowDefinition x:Name="PlayListRow" Height="*" />
         </Grid.RowDefinitions>
 
         <views:Artwork Grid.Row="0" />
         <views:Player Grid.Row="1" />
-        <views:PlayList Grid.Row="2" />
+        <views:PlayList x:Name="PlayListView" Grid.Row="2" />
     </Grid>
 </Window>

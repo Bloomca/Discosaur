@@ -1,5 +1,6 @@
 using System;
 using Discosaur.ViewModels;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
 
@@ -15,9 +16,14 @@ public sealed partial class Artwork : UserControl
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(MainViewModel.CurrentAlbumCoverArtPath))
+        switch (e.PropertyName)
         {
-            DispatcherQueue.TryEnqueue(UpdateCoverArt);
+            case nameof(MainViewModel.CurrentAlbumCoverArtPath):
+                DispatcherQueue.TryEnqueue(UpdateCoverArt);
+                break;
+            case nameof(MainViewModel.IsAlwaysOnTop):
+                DispatcherQueue.TryEnqueue(UpdatePinVisual);
+                break;
         }
     }
 
@@ -29,5 +35,15 @@ public sealed partial class Artwork : UserControl
             CoverArtImage.Source = new BitmapImage(new Uri(path));
         else
             CoverArtImage.Source = null;
+    }
+
+    private void UpdatePinVisual()
+    {
+        PinIcon.Glyph = App.ViewModel.IsAlwaysOnTop ? "\uE841" : "\uE718";
+    }
+
+    private void Pin_Click(object sender, RoutedEventArgs e)
+    {
+        App.ViewModel.ToggleAlwaysOnTopCommand.Execute(null);
     }
 }
