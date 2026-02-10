@@ -23,7 +23,7 @@ public class AudioPlayerService
 
     public async Task PlayAsync(Track track)
     {
-        Stop();
+        StopPlayback();
 
         CurrentTrack = track;
 
@@ -53,6 +53,15 @@ public class AudioPlayerService
 
     public void Stop()
     {
+        StopPlayback();
+
+        CurrentTrack = null;
+        _stoppingManually = false;
+        PlaybackStateChanged?.Invoke();
+    }
+
+    private void StopPlayback()
+    {
         _stoppingManually = true;
 
         if (_waveOut != null)
@@ -68,10 +77,6 @@ public class AudioPlayerService
             _reader.Dispose();
             _reader = null;
         }
-
-        CurrentTrack = null;
-        _stoppingManually = false;
-        PlaybackStateChanged?.Invoke();
     }
 
     public void Seek(TimeSpan position)

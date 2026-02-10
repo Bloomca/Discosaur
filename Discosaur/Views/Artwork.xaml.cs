@@ -12,6 +12,7 @@ public sealed partial class Artwork : UserControl
     {
         InitializeComponent();
         App.ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+        UpdateCoverArt();
     }
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
