@@ -87,8 +87,18 @@ Three-row vertical Grid (540x800, `ExtendsContentIntoTitleBar`):
 
 Future additions with their own specifications:
 
+- allow dragging a folder into the app to add as an album
+- allow drag and drop to reorder tracks
+- add nested library scanning
+- save settings, collapsed/expanded state, window position to the JSON file (under `settings`)
+- render track number and track length
+- calculate track length correctly
+- allow to select entire album (ability to duplicate/delete)
+- handle individual tracks
 - Tray menu on window close
 - Library scanning, sorting/filtering by genre/artist
 - Dominant colour extraction from artwork for theming
 - Frequency/amplitude visualization on progress bar
 - Theme support
+- add mini mode
+- add settings
