@@ -9,6 +9,8 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
 
-        AppWindow.Resize(new SizeInt32(600, 900));
+        // this will need to be revised a bit; at first the library
+        // should be visible and later collapsed by pressing a button
+        AppWindow.Resize(new SizeInt32(540, 800));
     }
 }

@@ -35,6 +35,7 @@ namespace Discosaur
 
             _window = new MainWindow();
             MainWindow = _window;
+            _window.ExtendsContentIntoTitleBar = true;
             _window.Activate();
         }
     }
