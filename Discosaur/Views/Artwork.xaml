@@ -8,16 +8,12 @@
     mc:Ignorable="d">
 
     <Border
-        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-        BorderThickness="1"
-        CornerRadius="8"
-        Padding="16"
+        HorizontalAlignment="Center"
         Margin="16"
-        HorizontalAlignment="Center">
-        <TextBlock
-            Text="Artwork Placeholder"
-            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-            FontStyle="Italic" />
+        Width="300"
+        Height="300">
+        <Image
+            x:Name="CoverArtImage"
+            Stretch="Uniform" />
     </Border>
 </UserControl>

@@ -94,10 +94,12 @@ public class LibraryService
 
         foreach (var group in grouped)
         {
-            var sortedTracks = group
-                .OrderBy(t => t.TrackNumber ?? uint.MaxValue)
-                .ThenBy(t => t.FileName)
-                .ToList();
+            var withNumber = group
+                .Where(t => t.TrackNumber.HasValue)
+                .OrderBy(t => t.TrackNumber!.Value)
+                .ThenBy(t => t.FileName);
+            var withoutNumber = group.Where(t => !t.TrackNumber.HasValue);
+            var sortedTracks = withNumber.Concat(withoutNumber).ToList();
 
             if (string.IsNullOrEmpty(group.Key))
             {
