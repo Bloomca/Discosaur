@@ -13,7 +13,12 @@
         <ItemsControl ItemsSource="{x:Bind Album.Tracks}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="models:Track">
-                    <TextBlock Text="{x:Bind FileName}" Padding="8,4" />
+                    <Border
+                        DoubleTapped="Track_DoubleTapped"
+                        Background="Transparent"
+                        Padding="8,4">
+                        <TextBlock Text="{x:Bind FileName}" />
+                    </Border>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>

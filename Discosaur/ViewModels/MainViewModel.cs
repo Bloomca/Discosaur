@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Discosaur.Models;
@@ -26,12 +28,18 @@ public partial class MainViewModel : ObservableObject
         _libraryService = libraryService;
 
         _audioPlayer.PlaybackStateChanged += OnPlaybackStateChanged;
+        _audioPlayer.TrackEnded += OnTrackEnded;
     }
 
     private void OnPlaybackStateChanged()
     {
         CurrentTrack = _audioPlayer.CurrentTrack;
         IsPlaying = _audioPlayer.IsPlaying;
+    }
+
+    private void OnTrackEnded()
+    {
+        PlayNextTrack();
     }
 
     public void AddFolderToLibrary(string folderPath)
@@ -56,13 +64,13 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void PlayTrack(Track track)
+    private async Task PlayTrack(Track track)
     {
-        _audioPlayer.Play(track);
+        await _audioPlayer.PlayAsync(track);
     }
 
     [RelayCommand]
-    private void TogglePlayPause()
+    private async Task TogglePlayPause()
     {
         if (_audioPlayer.IsPlaying)
         {
@@ -72,11 +80,59 @@ public partial class MainViewModel : ObservableObject
         {
             _audioPlayer.Resume();
         }
+        else
+        {
+            // Nothing playing or paused — start first track in library
+            var firstTrack = Library.FirstOrDefault()?.Tracks.FirstOrDefault();
+            if (firstTrack != null)
+            {
+                await _audioPlayer.PlayAsync(firstTrack);
+            }
+        }
     }
 
     [RelayCommand]
     private void Stop()
     {
         _audioPlayer.Stop();
+    }
+
+    private async void PlayNextTrack()
+    {
+        var current = _audioPlayer.CurrentTrack;
+        if (current == null || Library.Count == 0)
+        {
+            return;
+        }
+
+        // Find the current track's position in the library
+        for (int albumIdx = 0; albumIdx < Library.Count; albumIdx++)
+        {
+            var album = Library[albumIdx];
+            var trackIdx = album.Tracks.IndexOf(current);
+            if (trackIdx < 0) continue;
+
+            // Next track in the same album
+            if (trackIdx + 1 < album.Tracks.Count)
+            {
+                await _audioPlayer.PlayAsync(album.Tracks[trackIdx + 1]);
+                return;
+            }
+
+            // First track in the next album
+            if (albumIdx + 1 < Library.Count)
+            {
+                var nextAlbum = Library[albumIdx + 1];
+                if (nextAlbum.Tracks.Count > 0)
+                {
+                    await _audioPlayer.PlayAsync(nextAlbum.Tracks[0]);
+                    return;
+                }
+            }
+
+            // End of library — stop
+            _audioPlayer.Stop();
+            return;
+        }
     }
 }
