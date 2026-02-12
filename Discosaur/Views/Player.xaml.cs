@@ -59,6 +59,31 @@ public sealed partial class Player : UserControl
     private void UpdateTrackName()
     {
         TrackNameText.Text = ViewModel.CurrentTrack?.Title ?? "No track playing";
+        BandNameText.Text = GenerateBandAlbumName();
+    }
+
+    private string GenerateBandAlbumName()
+    {
+        if (ViewModel.CurrentTrack == null) return string.Empty;
+
+        var bandName = ViewModel.CurrentTrack.Artist;
+        var albumName = ViewModel.CurrentTrack.AlbumTitle;
+
+        if (bandName != null && albumName != null)
+        {
+            return $"{bandName}: {albumName}";
+        }
+        else if (bandName != null)
+        {
+            return bandName;
+        }
+        else if (albumName != null)
+        {
+            return albumName;
+        } else
+        {
+            return string.Empty;
+        }
     }
 
     private void UpdateTooltips()

@@ -9,7 +9,7 @@ public sealed partial class MainWindow : Window
 {
     private const int DefaultWidth = 580;
     private const int ExpandedHeight = 1200;
-    private const int CollapsedHeight = 770;
+    private const int CollapsedHeight = 800;
 
     public MainWindow()
     {
