@@ -14,13 +14,18 @@
     </UserControl.Resources>
 
     <StackPanel Padding="8,4,8,4" Spacing="4">
-        <TextBlock
-            x:Name="TrackNameText"
-            Text="No track playing"
-            FontSize="14"
-            HorizontalAlignment="Center"
-            TextTrimming="CharacterEllipsis"
-            MaxLines="1" />
+        <TextBlock x:Name="TrackNameText"
+                   Text="No track playing"
+                   FontSize="14"
+                   FontFamily="Nirmala UI"
+                   TextTrimming="CharacterEllipsis"
+                   MaxLines="1" />
+        <TextBlock x:Name="BandNameText"
+                   Text=""
+                   FontSize="12"
+                   TextTrimming="CharacterEllipsis"
+                   Foreground="#999999"
+                   MaxLines="1" />
 
         <!-- Progress bar with time labels -->
         <Grid>
