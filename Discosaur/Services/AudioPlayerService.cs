@@ -53,6 +53,7 @@ public class AudioPlayerService
 
     public void Stop()
     {
+        _stoppingManually = true;
         StopPlayback();
 
         CurrentTrack = null;
@@ -62,8 +63,6 @@ public class AudioPlayerService
 
     private void StopPlayback()
     {
-        _stoppingManually = true;
-
         if (_waveOut != null)
         {
             _waveOut.PlaybackStopped -= OnPlaybackStopped;

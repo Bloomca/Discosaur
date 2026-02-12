@@ -38,7 +38,6 @@ namespace Discosaur
                 System.Diagnostics.Debug.WriteLine($"TASK: {e.Exception}");
             };
         }
-
         protected override void OnLaunched(LaunchActivatedEventArgs args)
         {
             // Create singleton services and ViewModel once at startup
