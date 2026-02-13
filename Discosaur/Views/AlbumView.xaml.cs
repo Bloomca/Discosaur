@@ -112,7 +112,18 @@ public sealed partial class AlbumView : UserControl
     {
         if (sender is FrameworkElement { DataContext: Track track })
         {
-            App.ViewModel.SelectionViewModel.SelectTrack(track);
+            var ctrlState = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(
+    Windows.System.VirtualKey.Control);
+
+            bool ctrlPressed = (ctrlState & Windows.UI.Core.CoreVirtualKeyStates.Down) != 0;
+
+            if (ctrlPressed)
+            {
+                App.ViewModel.SelectionViewModel.SelectExtraTrack(track);
+            } else
+            {
+                App.ViewModel.SelectionViewModel.SelectTrack(track);
+            }
         }
     }
 

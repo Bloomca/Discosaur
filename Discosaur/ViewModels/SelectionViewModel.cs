@@ -27,6 +27,20 @@ namespace Discosaur.ViewModels
             SelectedTracks.Add(track);
         }
 
+        /// <summary>
+        /// Meant to be called when the user clicks with CTRL key pressed
+        /// </summary>
+        public void SelectExtraTrack(Track track)
+        {
+            if (SelectedTracks.Contains(track))
+            {
+                SelectedTracks.Remove(track);
+            } else
+            {
+                SelectedTracks.Add(track);
+            }
+        }
+
         public void SelectNextTrack()
         {
             var anchor = SelectedTracks.LastOrDefault();
