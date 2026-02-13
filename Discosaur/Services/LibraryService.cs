@@ -143,4 +143,50 @@ public class LibraryService
 
         return null;
     }
+
+    public static Track? FindNextTrack(Track? current, IReadOnlyList<Album> library)
+    {
+        if (current == null || library.Count == 0) return null;
+
+        for (int albumIdx = 0; albumIdx < library.Count; albumIdx++)
+        {
+            var album = library[albumIdx];
+            var trackIdx = album.Tracks.IndexOf(current);
+            if (trackIdx < 0) continue;
+
+            if (trackIdx + 1 < album.Tracks.Count)
+                return album.Tracks[trackIdx + 1];
+
+            if (albumIdx + 1 < library.Count && library[albumIdx + 1].Tracks.Count > 0)
+                return library[albumIdx + 1].Tracks[0];
+
+            return null;
+        }
+        return null;
+    }
+
+    public static Track? FindPreviousTrack(Track? current, IReadOnlyList<Album> library)
+    {
+        if (current == null || library.Count == 0) return null;
+
+        for (int albumIdx = 0; albumIdx < library.Count; albumIdx++)
+        {
+            var album = library[albumIdx];
+            var trackIdx = album.Tracks.IndexOf(current);
+            if (trackIdx < 0) continue;
+
+            if (trackIdx - 1 >= 0)
+                return album.Tracks[trackIdx - 1];
+
+            if (albumIdx - 1 >= 0)
+            {
+                var prevAlbum = library[albumIdx - 1];
+                if (prevAlbum.Tracks.Count > 0)
+                    return prevAlbum.Tracks[^1];
+            }
+
+            return null;
+        }
+        return null;
+    }
 }
