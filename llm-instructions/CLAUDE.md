@@ -19,6 +19,8 @@ App.AudioPlayer      → AudioPlayerService
 App.LibraryService   → LibraryService
 App.StatePersister   → StatePersisterService
 App.ViewModel        → MainViewModel(AudioPlayer, LibraryService)
+  └─ .PlaybackViewModel → PlaybackViewModel(AudioPlayer, Library)
+  └─ .SelectionViewModel → SelectionViewModel(Library)
 App.PlayerViewModel  → PlayerViewModel(AudioPlayer, DispatcherQueue)
 App.MainWindow       → Window
 App.MainWindowHandle → IntPtr (needed for native interop like FolderPicker)
@@ -36,7 +38,8 @@ Views access everything through these static properties (no DI container).
 | `Services/AudioPlayerService.cs` | NAudio playback engine: async play, pause, stop, seek. Fires `PlaybackStateChanged` and `TrackEnded` events |
 | `Services/LibraryService.cs` | Scans folders for audio files, parses metadata via TagLib, groups into albums, detects cover art |
 | `Services/StatePersisterService.cs` | Persists playlist and current track to JSON in LocalFolder; debounced save (500ms), sync flush on close, async load/restore with FutureAccessList token resolution |
-| `ViewModels/MainViewModel.cs` | Central app state: library collection, selection, playback commands, track navigation helpers, auto-advance on track end |
+| `ViewModels/MainViewModel.cs` | Central app state: library collection, selection/playback sub-VMs, library management, delete/play-selected bridging |
+| `ViewModels/PlaybackViewModel.cs` | Playback state: current track, play/pause/stop/next/prev commands, repeat/shuffle, volume (level, reduced level, color mode), auto-advance on track end |
 | `ViewModels/PlayerViewModel.cs` | Progress tracking: polls AudioPlayer on 500ms timer, updates percent/time text, handles seek |
 | `Views/Player.xaml/.cs` | Player controls UI: track name, progress slider with seek, play/pause + stop buttons |
 | `Views/PlayList.xaml/.cs` | Library browser: folder picker button, album list, keyboard navigation (Up/Down/Home/End/Enter/Delete) |
@@ -74,7 +77,7 @@ Three-row vertical Grid (540x800, `ExtendsContentIntoTitleBar`):
 
 `dotnet build Discosaur/Discosaur.csproj -p:Platform=x64`. Launch profiles in `Properties/launchSettings.json`: packaged (MSIX) or unpackaged. Platforms: x86, x64, ARM64.
 
-## Implemented specs (1–6)
+## Implemented specs (1–7)
 
 1. **Basic structure**: MVVM skeleton, services, vertical layout
 2. **Metadata**: TagLib parsing, album grouping, cover art detection
@@ -82,6 +85,7 @@ Three-row vertical Grid (540x800, `ExtendsContentIntoTitleBar`):
 4. **Metadata in UX**: display names, sorting, artwork, keyboard nav, selection, deletion
 5. **Improve UI**: prev/next/repeat/shuffle buttons, collapse/expand, always-on-top pin, playing-track highlight
 6. **Persist data**: JSON state file in LocalFolder with debounced writes, FutureAccessList tokens for folder access across restarts, current track restore without playback
+7. **Volume controls**: single-button volume toggle (full/reduced), right-click flyout with volume + reduced-level sliders, icon glyph/color reflects state, persisted in AppSettings. Refactored playback state into PlaybackViewModel
 
 ## Features to implement
 

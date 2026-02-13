@@ -172,7 +172,11 @@ public class StatePersisterService
         }
 
         if (trackToSelect != null)
-            vm.SetCurrentTrackDisplay(trackToSelect);
+            vm.PlaybackViewModel.SetCurrentTrackDisplay(trackToSelect);
+
+        // Restore volume settings
+        vm.PlaybackViewModel.SetVolume(state.Settings.VolumeLevel);
+        vm.PlaybackViewModel.SetReducedVolumeLevel(state.Settings.ReducedVolumeLevel);
     }
 
     // --- State capture ---
@@ -212,18 +216,23 @@ public class StatePersisterService
             state.Playlist.Add(persistedAlbum);
         }
 
-        if (vm.CurrentTrack != null)
+        var currentTrack = vm.PlaybackViewModel.CurrentTrack;
+        if (currentTrack != null)
         {
-            var album = vm.Library.FirstOrDefault(a => a.Tracks.Contains(vm.CurrentTrack));
+            var album = vm.Library.FirstOrDefault(a => a.Tracks.Contains(currentTrack));
             if (album != null && !string.IsNullOrEmpty(album.FolderToken))
             {
                 state.CurrentTrack = new PersistedCurrentTrack
                 {
                     FolderToken = album.FolderToken,
-                    FileName = vm.CurrentTrack.FileName
+                    FileName = currentTrack.FileName
                 };
             }
         }
+
+        // Volume settings
+        state.Settings.VolumeLevel = vm.PlaybackViewModel.VolumeLevel;
+        state.Settings.ReducedVolumeLevel = vm.PlaybackViewModel.ReducedVolumeLevel;
 
         return state;
     }

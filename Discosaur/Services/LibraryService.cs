@@ -189,4 +189,16 @@ public class LibraryService
         }
         return null;
     }
+
+    public static Album? FindAlbumForTrack(Track? track, IReadOnlyList<Album> library)
+    {
+        if (track == null) return null;
+
+        foreach (var album in library)
+        {
+            if (album.Tracks.Contains(track))
+                return album;
+        }
+        return null;
+    }
 }

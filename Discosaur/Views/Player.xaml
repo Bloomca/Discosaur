@@ -14,18 +14,38 @@
     </UserControl.Resources>
 
     <StackPanel Padding="8,4,8,4" Spacing="4">
-        <TextBlock x:Name="TrackNameText"
-                   Text="No track playing"
-                   FontSize="14"
-                   FontFamily="Nirmala UI"
-                   TextTrimming="CharacterEllipsis"
-                   MaxLines="1" />
-        <TextBlock x:Name="BandNameText"
-                   Text=""
-                   FontSize="12"
-                   TextTrimming="CharacterEllipsis"
-                   Foreground="#999999"
-                   MaxLines="1" />
+        <!-- Track info + volume icon -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <TextBlock x:Name="TrackNameText"
+                           Text="No track playing"
+                           FontSize="14"
+                           FontFamily="Nirmala UI"
+                           TextTrimming="CharacterEllipsis"
+                           MaxLines="1" />
+                <TextBlock x:Name="BandNameText"
+                           Text=""
+                           FontSize="12"
+                           TextTrimming="CharacterEllipsis"
+                           Foreground="#999999"
+                           MaxLines="1" />
+            </StackPanel>
+
+            <Button x:Name="VolumeButton"
+                    Grid.Column="1"
+                    Click="Volume_Click"
+                    RightTapped="Volume_RightTapped"
+                    Width="36" Height="36" Padding="0"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center">
+                <FontIcon x:Name="VolumeIcon" Glyph="&#xE995;" FontSize="20" />
+            </Button>
+        </Grid>
 
         <!-- Progress bar with time labels -->
         <Grid>
@@ -59,7 +79,7 @@
                 <FontIcon Glyph="&#xE892;" FontSize="16" />
             </Button>
             <Button Click="PlayPause_Click" Width="36" Height="36" Padding="0">
-                <FontIcon Glyph="{x:Bind ViewModel.IsPlaying, Converter={StaticResource PlayPauseGlyphConverter}, Mode=OneWay}" FontSize="16" />
+                <FontIcon Glyph="{x:Bind Playback.IsPlaying, Converter={StaticResource PlayPauseGlyphConverter}, Mode=OneWay}" FontSize="16" />
             </Button>
             <Button x:Name="NextButton" Click="Next_Click" Width="36" Height="36" Padding="0">
                 <FontIcon Glyph="&#xE893;" FontSize="16" />

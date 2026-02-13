@@ -10,6 +10,18 @@ public class AudioPlayerService
     private WaveOutEvent? _waveOut;
     private MediaFoundationReader? _reader;
     private bool _stoppingManually;
+    private float _volume = 1.0f;
+
+    public float Volume
+    {
+        get => _volume;
+        set
+        {
+            _volume = Math.Clamp(value, 0f, 1f);
+            if (_waveOut != null)
+                _waveOut.Volume = _volume;
+        }
+    }
 
     public Track? CurrentTrack { get; private set; }
     public bool IsPlaying => _waveOut?.PlaybackState == PlaybackState.Playing;
@@ -32,6 +44,7 @@ public class AudioPlayerService
 
         _reader = reader;
         _waveOut = new WaveOutEvent();
+        _waveOut.Volume = _volume;
         _waveOut.Init(_reader);
         _waveOut.PlaybackStopped += OnPlaybackStopped;
         _waveOut.Play();
