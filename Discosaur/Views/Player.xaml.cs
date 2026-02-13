@@ -1,14 +1,18 @@
-using Discosaur.Models;
 using Discosaur.ViewModels;
+using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
+using Discosaur.Models;
 
 namespace Discosaur.Views;
 
 public sealed partial class Player : UserControl
 {
     public MainViewModel ViewModel => App.ViewModel;
+    public PlaybackViewModel Playback => App.ViewModel.PlaybackViewModel;
 
     private bool _isUserInteracting;
 
@@ -16,7 +20,8 @@ public sealed partial class Player : UserControl
     {
         InitializeComponent();
 
-        App.ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+        Playback.PropertyChanged += PlaybackViewModel_PropertyChanged;
+        ViewModel.PropertyChanged += ViewModel_PropertyChanged;
         App.PlayerViewModel.PropertyChanged += PlayerViewModel_PropertyChanged;
 
         ProgressSlider.AddHandler(PointerPressedEvent,
@@ -28,23 +33,39 @@ public sealed partial class Player : UserControl
 
         UpdateTrackName();
         UpdateTooltips();
+        UpdateVolumeVisual();
+        UpdateVolumeTooltip();
+    }
+
+    private void PlaybackViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        switch (e.PropertyName)
+        {
+            case nameof(PlaybackViewModel.CurrentTrack):
+                DispatcherQueue.TryEnqueue(UpdateTrackName);
+                DispatcherQueue.TryEnqueue(UpdateTooltips);
+                break;
+            case nameof(PlaybackViewModel.RepeatMode):
+                DispatcherQueue.TryEnqueue(UpdateRepeatVisual);
+                break;
+            case nameof(PlaybackViewModel.IsShuffleEnabled):
+                DispatcherQueue.TryEnqueue(UpdateShuffleVisual);
+                DispatcherQueue.TryEnqueue(UpdateTooltips);
+                break;
+            case nameof(PlaybackViewModel.VolumeLevel):
+            case nameof(PlaybackViewModel.VolumeColorMode):
+                DispatcherQueue.TryEnqueue(UpdateVolumeVisual);
+                break;
+            case nameof(PlaybackViewModel.ReducedVolumeLevel):
+                DispatcherQueue.TryEnqueue(UpdateVolumeTooltip);
+                break;
+        }
     }
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         switch (e.PropertyName)
         {
-            case nameof(MainViewModel.CurrentTrack):
-                DispatcherQueue.TryEnqueue(UpdateTrackName);
-                DispatcherQueue.TryEnqueue(UpdateTooltips);
-                break;
-            case nameof(MainViewModel.RepeatMode):
-                DispatcherQueue.TryEnqueue(UpdateRepeatVisual);
-                break;
-            case nameof(MainViewModel.IsShuffleEnabled):
-                DispatcherQueue.TryEnqueue(UpdateShuffleVisual);
-                DispatcherQueue.TryEnqueue(UpdateTooltips);
-                break;
             case nameof(MainViewModel.IsLibraryExpanded):
                 DispatcherQueue.TryEnqueue(UpdateCollapseVisual);
                 break;
@@ -58,16 +79,16 @@ public sealed partial class Player : UserControl
 
     private void UpdateTrackName()
     {
-        TrackNameText.Text = ViewModel.CurrentTrack?.Title ?? "No track playing";
+        TrackNameText.Text = Playback.CurrentTrack?.Title ?? "No track playing";
         BandNameText.Text = GenerateBandAlbumName();
     }
 
     private string GenerateBandAlbumName()
     {
-        if (ViewModel.CurrentTrack == null) return string.Empty;
+        if (Playback.CurrentTrack == null) return string.Empty;
 
-        var bandName = ViewModel.CurrentTrack.Artist;
-        var albumName = ViewModel.CurrentTrack.AlbumTitle;
+        var bandName = Playback.CurrentTrack.Artist;
+        var albumName = Playback.CurrentTrack.AlbumTitle;
 
         if (bandName != null && albumName != null)
         {
@@ -88,21 +109,21 @@ public sealed partial class Player : UserControl
 
     private void UpdateTooltips()
     {
-        if (ViewModel.IsShuffleEnabled)
+        if (Playback.IsShuffleEnabled)
         {
             ToolTipService.SetToolTip(PreviousButton, "Random track");
             ToolTipService.SetToolTip(NextButton, "Random track");
         }
         else
         {
-            ToolTipService.SetToolTip(PreviousButton, ViewModel.PreviousTrackTitle ?? "Previous track");
-            ToolTipService.SetToolTip(NextButton, ViewModel.NextTrackTitle ?? "Next track");
+            ToolTipService.SetToolTip(PreviousButton, Playback.PreviousTrackTitle ?? "Previous track");
+            ToolTipService.SetToolTip(NextButton, Playback.NextTrackTitle ?? "Next track");
         }
     }
 
     private void UpdateRepeatVisual()
     {
-        switch (ViewModel.RepeatMode)
+        switch (Playback.RepeatMode)
         {
             case RepeatMode.Off:
                 RepeatIcon.Glyph = "\uE8EE";
@@ -121,7 +142,7 @@ public sealed partial class Player : UserControl
 
     private void UpdateShuffleVisual()
     {
-        ShuffleIcon.Opacity = ViewModel.IsShuffleEnabled ? 1.0 : 0.4;
+        ShuffleIcon.Opacity = Playback.IsShuffleEnabled ? 1.0 : 0.4;
     }
 
     private void UpdateCollapseVisual()
@@ -140,6 +161,39 @@ public sealed partial class Player : UserControl
 
         TimeText.Text = $"{pvm.CurrentTimeText}/{pvm.TotalTimeText}";
     }
+
+    // --- Volume visual ---
+
+    private void UpdateVolumeVisual()
+    {
+        var level = Playback.VolumeLevel;
+
+        VolumeIcon.Glyph = level switch
+        {
+            >= 90 => "\uE995",
+            >= 60 => "\uE994",
+            >= 20 => "\uE993",
+            >= 1  => "\uE992",
+            _     => "\uE74F"
+        };
+
+        VolumeIcon.Foreground = Playback.VolumeColorMode switch
+        {
+            VolumeColorMode.Reduced => new SolidColorBrush(ColorHelper.FromArgb(255, 91, 155, 213)),
+            VolumeColorMode.Manual  => new SolidColorBrush(ColorHelper.FromArgb(255, 237, 125, 49)),
+            _                       => (Brush)Application.Current.Resources["SystemControlForegroundBaseHighBrush"]
+        };
+
+        UpdateVolumeTooltip();
+    }
+
+    private void UpdateVolumeTooltip()
+    {
+        ToolTipService.SetToolTip(VolumeButton,
+            $"Left-click: change volume to {Playback.ReducedVolumeLevel}%\nRight-click: open volume menu");
+    }
+
+    // --- Slider events ---
 
     private void ProgressSlider_PointerPressed(object sender, PointerRoutedEventArgs e)
     {
@@ -160,38 +214,92 @@ public sealed partial class Player : UserControl
         _isUserInteracting = false;
     }
 
+    // --- Transport button clicks ---
+
     private void PlayPause_Click(object sender, RoutedEventArgs e)
     {
-        ViewModel.TogglePlayPauseCommand.Execute(null);
+        Playback.TogglePlayPauseCommand.Execute(null);
     }
 
     private void Stop_Click(object sender, RoutedEventArgs e)
     {
-        ViewModel.StopCommand.Execute(null);
+        Playback.StopCommand.Execute(null);
     }
 
     private void Previous_Click(object sender, RoutedEventArgs e)
     {
-        ViewModel.PlayPreviousCommand.Execute(null);
+        Playback.PlayPreviousCommand.Execute(null);
     }
 
     private void Next_Click(object sender, RoutedEventArgs e)
     {
-        ViewModel.PlayNextCommand.Execute(null);
+        Playback.PlayNextCommand.Execute(null);
     }
 
     private void Repeat_Click(object sender, RoutedEventArgs e)
     {
-        ViewModel.CycleRepeatModeCommand.Execute(null);
+        Playback.CycleRepeatModeCommand.Execute(null);
     }
 
     private void Shuffle_Click(object sender, RoutedEventArgs e)
     {
-        ViewModel.ToggleShuffleCommand.Execute(null);
+        Playback.ToggleShuffleCommand.Execute(null);
     }
 
     private void Collapse_Click(object sender, RoutedEventArgs e)
     {
         ViewModel.ToggleLibraryExpandedCommand.Execute(null);
+    }
+
+    // --- Volume ---
+
+    private void Volume_Click(object sender, RoutedEventArgs e)
+    {
+        Playback.ToggleVolume();
+    }
+
+    private void Volume_RightTapped(object sender, RightTappedRoutedEventArgs e)
+    {
+        e.Handled = true;
+
+        var volumeSlider = new Slider
+        {
+            Minimum = 0,
+            Maximum = 100,
+            Value = Playback.VolumeLevel,
+            Width = 200,
+            Header = "Volume"
+        };
+
+        var reducedSlider = new Slider
+        {
+            Minimum = 0,
+            Maximum = 100,
+            Value = Playback.ReducedVolumeLevel,
+            Width = 200,
+            Header = "Reduced level"
+        };
+
+        volumeSlider.ValueChanged += (_, args) =>
+        {
+            Playback.SetVolume((int)args.NewValue);
+        };
+
+        reducedSlider.ValueChanged += (_, args) =>
+        {
+            Playback.SetReducedVolumeLevel((int)args.NewValue);
+        };
+
+        var panel = new StackPanel { Spacing = 12, Padding = new Thickness(4) };
+        panel.Children.Add(volumeSlider);
+        panel.Children.Add(reducedSlider);
+
+        var flyout = new Flyout
+        {
+            Content = panel,
+            Placement = FlyoutPlacementMode.Bottom
+        };
+
+        flyout.ShowAt(VolumeButton);
     }
 }

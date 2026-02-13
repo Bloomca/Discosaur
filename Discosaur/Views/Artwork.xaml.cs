@@ -11,26 +11,30 @@ public sealed partial class Artwork : UserControl
     public Artwork()
     {
         InitializeComponent();
+        App.ViewModel.PlaybackViewModel.PropertyChanged += PlaybackViewModel_PropertyChanged;
         App.ViewModel.PropertyChanged += ViewModel_PropertyChanged;
         UpdateCoverArt();
     }
 
+    private void PlaybackViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(PlaybackViewModel.CurrentAlbumCoverArtPath))
+        {
+            DispatcherQueue.TryEnqueue(UpdateCoverArt);
+        }
+    }
+
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        switch (e.PropertyName)
+        if (e.PropertyName == nameof(MainViewModel.IsAlwaysOnTop))
         {
-            case nameof(MainViewModel.CurrentAlbumCoverArtPath):
-                DispatcherQueue.TryEnqueue(UpdateCoverArt);
-                break;
-            case nameof(MainViewModel.IsAlwaysOnTop):
-                DispatcherQueue.TryEnqueue(UpdatePinVisual);
-                break;
+            DispatcherQueue.TryEnqueue(UpdatePinVisual);
         }
     }
 
     private void UpdateCoverArt()
     {
-        var path = App.ViewModel.CurrentAlbumCoverArtPath;
+        var path = App.ViewModel.PlaybackViewModel.CurrentAlbumCoverArtPath;
 
         if (!string.IsNullOrEmpty(path))
             CoverArtImage.Source = new BitmapImage(new Uri(path));

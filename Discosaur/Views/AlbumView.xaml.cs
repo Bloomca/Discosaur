@@ -30,7 +30,7 @@ public sealed partial class AlbumView : UserControl
         InitializeComponent();
         InitAccentBrushes();
         App.ViewModel.SelectionViewModel.SelectedTracks.CollectionChanged += (_, _) => UpdateSelectionVisuals();
-        App.ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+        App.ViewModel.PlaybackViewModel.PropertyChanged += PlaybackViewModel_PropertyChanged;
 
         UpdateSelectionVisuals();
     }
@@ -53,9 +53,9 @@ public sealed partial class AlbumView : UserControl
         _selectedAndPlayingBrush = new SolidColorBrush(accent) { Opacity = 0.45 };
     }
 
-    private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    private void PlaybackViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(MainViewModel.CurrentTrack))
+        if (e.PropertyName == nameof(PlaybackViewModel.CurrentTrack))
         {
             DispatcherQueue.TryEnqueue(UpdateSelectionVisuals);
         }
@@ -66,7 +66,7 @@ public sealed partial class AlbumView : UserControl
         DispatcherQueue.TryEnqueue(() =>
         {
             var selectedTracks = App.ViewModel.SelectionViewModel.SelectedTracks;
-            var currentTrack = App.ViewModel.CurrentTrack;
+            var currentTrack = App.ViewModel.PlaybackViewModel.CurrentTrack;
 
             for (int i = 0; i < TracksControl.Items.Count; i++)
             {
@@ -131,7 +131,7 @@ public sealed partial class AlbumView : UserControl
     {
         if (sender is FrameworkElement { DataContext: Track track })
         {
-            App.ViewModel.PlayTrackCommand.Execute(track);
+            App.ViewModel.PlaybackViewModel.PlayTrackCommand.Execute(track);
         }
     }
 

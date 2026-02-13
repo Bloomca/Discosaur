@@ -17,7 +17,11 @@ public class AppState
 
 public class AppSettings
 {
-    // Empty for now; future settings go here
+    [JsonPropertyName("volumeLevel")]
+    public int VolumeLevel { get; set; } = 100;
+
+    [JsonPropertyName("reducedVolumeLevel")]
+    public int ReducedVolumeLevel { get; set; } = 30;
 }
 
 public class PersistedAlbum
