@@ -26,22 +26,22 @@ public sealed partial class PlayList : UserControl
         switch (e.Key)
         {
             case VirtualKey.Down:
-                vm.SelectNextTrack();
+                vm.SelectionViewModel.SelectNextTrack();
                 e.Handled = true;
                 break;
 
             case VirtualKey.Up:
-                vm.SelectPreviousTrack();
+                vm.SelectionViewModel.SelectPreviousTrack();
                 e.Handled = true;
                 break;
 
             case VirtualKey.End:
-                vm.SelectFirstTrackOfNextAlbum();
+                vm.SelectionViewModel.SelectFirstTrackOfNextAlbum();
                 e.Handled = true;
                 break;
 
             case VirtualKey.Home:
-                vm.SelectFirstTrackOfPreviousAlbum();
+                vm.SelectionViewModel.SelectFirstTrackOfPreviousAlbum();
                 e.Handled = true;
                 break;
 

@@ -9,7 +9,12 @@
     mc:Ignorable="d">
 
     <StackPanel Margin="0,8">
-        <TextBlock Text="{x:Bind Album.DisplayName}" FontWeight="SemiBold" FontSize="10" Margin="0,0,0,4" Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+        <TextBlock Text="{x:Bind Album.DisplayName}"
+                   FontWeight="SemiBold"
+                   FontSize="10"
+                   Margin="0,0,0,4"
+                   Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                   Tapped="AlbumNameTapped" />
         <ItemsControl x:Name="TracksControl" ItemsSource="{x:Bind Album.Tracks}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="models:Track">

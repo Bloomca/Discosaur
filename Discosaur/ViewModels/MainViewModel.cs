@@ -16,9 +16,10 @@ public partial class MainViewModel : ObservableObject
     private readonly LibraryService _libraryService;
     private static readonly Random _random = new();
 
+    public SelectionViewModel SelectionViewModel { get; private set; }
+
     public ObservableCollection<Album> Library { get; } = [];
     public ObservableCollection<Track> Uncategorized { get; } = [];
-    public ObservableCollection<Track> SelectedTracks { get; } = [];
 
     [ObservableProperty]
     private Track? _currentTrack;
@@ -41,8 +42,8 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool _isAlwaysOnTop;
 
-    public string? NextTrackTitle => FindNextTrack(CurrentTrack)?.Title;
-    public string? PreviousTrackTitle => FindPreviousTrack(CurrentTrack)?.Title;
+    public string? NextTrackTitle => LibraryService.FindNextTrack(CurrentTrack, Library)?.Title;
+    public string? PreviousTrackTitle => LibraryService.FindPreviousTrack(CurrentTrack, Library)?.Title;
 
     public MainViewModel(AudioPlayerService audioPlayer, LibraryService libraryService)
     {
@@ -51,6 +52,8 @@ public partial class MainViewModel : ObservableObject
 
         _audioPlayer.PlaybackStateChanged += OnPlaybackStateChanged;
         _audioPlayer.TrackEnded += OnTrackEnded;
+
+        this.SelectionViewModel = new SelectionViewModel(Library);
     }
 
     private void OnPlaybackStateChanged()
@@ -78,7 +81,7 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        var next = FindNextTrack(_audioPlayer.CurrentTrack);
+        var next = LibraryService.FindNextTrack(_audioPlayer.CurrentTrack, Library);
 
         if (next == null && RepeatMode == RepeatMode.Album)
         {
@@ -116,133 +119,55 @@ public partial class MainViewModel : ObservableObject
         App.StatePersister.ScheduleSave();
     }
 
-    // --- Selection ---
-
-    public void SelectTrack(Track track)
-    {
-        SelectedTracks.Clear();
-        SelectedTracks.Add(track);
-    }
-
-    public void SelectNextTrack()
-    {
-        var anchor = SelectedTracks.LastOrDefault();
-        if (anchor == null)
-        {
-            var first = Library.FirstOrDefault()?.Tracks.FirstOrDefault();
-            if (first != null) SelectTrack(first);
-            return;
-        }
-
-        var next = FindNextTrack(anchor);
-        if (next != null) SelectTrack(next);
-    }
-
-    public void SelectPreviousTrack()
-    {
-        var anchor = SelectedTracks.LastOrDefault();
-        if (anchor == null)
-        {
-            var last = Library.LastOrDefault()?.Tracks.LastOrDefault();
-            if (last != null) SelectTrack(last);
-            return;
-        }
-
-        var prev = FindPreviousTrack(anchor);
-        if (prev != null) SelectTrack(prev);
-    }
-
-    public void SelectFirstTrackOfNextAlbum()
-    {
-        var anchor = SelectedTracks.LastOrDefault();
-        if (anchor == null)
-        {
-            var first = Library.FirstOrDefault()?.Tracks.FirstOrDefault();
-            if (first != null) SelectTrack(first);
-            return;
-        }
-
-        for (int i = 0; i < Library.Count; i++)
-        {
-            if (Library[i].Tracks.Contains(anchor) && i + 1 < Library.Count)
-            {
-                var target = Library[i + 1].Tracks.FirstOrDefault();
-                if (target != null) SelectTrack(target);
-                return;
-            }
-        }
-    }
-
-    public void SelectFirstTrackOfPreviousAlbum()
-    {
-        var anchor = SelectedTracks.LastOrDefault();
-        if (anchor == null) return;
-
-        for (int i = 0; i < Library.Count; i++)
-        {
-            if (Library[i].Tracks.Contains(anchor) && i - 1 >= 0)
-            {
-                var target = Library[i - 1].Tracks.FirstOrDefault();
-                if (target != null) SelectTrack(target);
-                return;
-            }
-        }
-    }
-
     [RelayCommand]
     private async Task PlaySelectedTrack()
     {
-        var track = SelectedTracks.FirstOrDefault();
+        var track = SelectionViewModel.SelectedTracks.FirstOrDefault();
         if (track != null)
             await _audioPlayer.PlayAsync(track);
     }
 
     [RelayCommand]
-    private async Task DeleteSelectedTracks()
+    private void DeleteSelectedTracks()
     {
-        if (SelectedTracks.Count == 0) return;
+        if (SelectionViewModel.SelectedTracks.Count == 0) return;
 
-        var trackToDelete = SelectedTracks[0];
-        bool wasPlaying = CurrentTrack == trackToDelete;
+        bool wasPlaying = CurrentTrack == null
+            ? false
+            : SelectionViewModel.SelectedTracks.Contains(CurrentTrack);
 
-        var nextTrack = FindNextTrack(trackToDelete);
-        var prevTrack = FindPreviousTrack(trackToDelete);
+        // so we can remove it from selected tracks collection in place
+        var selectedTracksCopy = SelectionViewModel.SelectedTracks.ToList();
 
-        // Remove from its album
         for (int i = 0; i < Library.Count; i++)
         {
-            if (Library[i].Tracks.Remove(trackToDelete))
-            {
-                if (Library[i].Tracks.Count == 0)
+            if (SelectionViewModel.SelectedTracks.Count == 0) break;
+            foreach (var selectedTrack in selectedTracksCopy) {
+                if (SelectionViewModel.SelectedTracks.Count == 0) break;
+                if (Library[i].Tracks.Remove(selectedTrack))
                 {
-                    var removedAlbum = Library[i];
-                    Library.RemoveAt(i);
-
-                    // Release FutureAccessList token if no other album uses it
-                    if (!string.IsNullOrEmpty(removedAlbum.FolderToken)
-                        && !Library.Any(a => a.FolderToken == removedAlbum.FolderToken))
+                    if (Library[i].Tracks.Count == 0)
                     {
-                        try { StorageApplicationPermissions.FutureAccessList.Remove(removedAlbum.FolderToken); }
-                        catch { }
+                        var removedAlbum = Library[i];
+                        Library.RemoveAt(i);
+
+                        // Release FutureAccessList token if no other album uses it
+                        if (!string.IsNullOrEmpty(removedAlbum.FolderToken)
+                            && !Library.Any(a => a.FolderToken == removedAlbum.FolderToken))
+                        {
+                            try { StorageApplicationPermissions.FutureAccessList.Remove(removedAlbum.FolderToken); }
+                            catch { }
+                        }
                     }
+                    SelectionViewModel.SelectedTracks.Remove(selectedTrack);
                 }
-                break;
             }
         }
 
-        // Select adjacent track
-        var toSelect = nextTrack ?? prevTrack;
-        SelectedTracks.Clear();
-        if (toSelect != null)
-            SelectedTracks.Add(toSelect);
-
-        // Auto-advance if we deleted the playing track
         if (wasPlaying)
         {
-            if (toSelect != null)
-                await _audioPlayer.PlayAsync(toSelect);
-            else
-                _audioPlayer.Stop();
+            // For simplicity, maybe will revise in the future
+            _audioPlayer.Stop();
         }
 
         App.StatePersister.ScheduleSave();
@@ -293,7 +218,7 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        var next = FindNextTrack(_audioPlayer.CurrentTrack);
+        var next = LibraryService.FindNextTrack(_audioPlayer.CurrentTrack, Library);
 
         if (next == null && RepeatMode == RepeatMode.Album)
         {
@@ -308,7 +233,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task PlayPrevious()
     {
-        var prev = FindPreviousTrack(_audioPlayer.CurrentTrack);
+        var prev = LibraryService.FindPreviousTrack(_audioPlayer.CurrentTrack, Library);
 
         if (prev == null && RepeatMode == RepeatMode.Album)
         {
@@ -383,52 +308,6 @@ public partial class MainViewModel : ObservableObject
 
         var pick = candidates[_random.Next(candidates.Count)];
         await _audioPlayer.PlayAsync(pick);
-    }
-
-    private Track? FindNextTrack(Track? current)
-    {
-        if (current == null || Library.Count == 0) return null;
-
-        for (int albumIdx = 0; albumIdx < Library.Count; albumIdx++)
-        {
-            var album = Library[albumIdx];
-            var trackIdx = album.Tracks.IndexOf(current);
-            if (trackIdx < 0) continue;
-
-            if (trackIdx + 1 < album.Tracks.Count)
-                return album.Tracks[trackIdx + 1];
-
-            if (albumIdx + 1 < Library.Count && Library[albumIdx + 1].Tracks.Count > 0)
-                return Library[albumIdx + 1].Tracks[0];
-
-            return null;
-        }
-        return null;
-    }
-
-    private Track? FindPreviousTrack(Track? current)
-    {
-        if (current == null || Library.Count == 0) return null;
-
-        for (int albumIdx = 0; albumIdx < Library.Count; albumIdx++)
-        {
-            var album = Library[albumIdx];
-            var trackIdx = album.Tracks.IndexOf(current);
-            if (trackIdx < 0) continue;
-
-            if (trackIdx - 1 >= 0)
-                return album.Tracks[trackIdx - 1];
-
-            if (albumIdx - 1 >= 0)
-            {
-                var prevAlbum = Library[albumIdx - 1];
-                if (prevAlbum.Tracks.Count > 0)
-                    return prevAlbum.Tracks[^1];
-            }
-
-            return null;
-        }
-        return null;
     }
 
     private Album? FindAlbumForTrack(Track? track)

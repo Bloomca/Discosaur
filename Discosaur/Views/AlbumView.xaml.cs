@@ -29,7 +29,7 @@ public sealed partial class AlbumView : UserControl
     {
         InitializeComponent();
         InitAccentBrushes();
-        App.ViewModel.SelectedTracks.CollectionChanged += (_, _) => UpdateSelectionVisuals();
+        App.ViewModel.SelectionViewModel.SelectedTracks.CollectionChanged += (_, _) => UpdateSelectionVisuals();
         App.ViewModel.PropertyChanged += ViewModel_PropertyChanged;
 
         UpdateSelectionVisuals();
@@ -65,7 +65,7 @@ public sealed partial class AlbumView : UserControl
     {
         DispatcherQueue.TryEnqueue(() =>
         {
-            var selectedTracks = App.ViewModel.SelectedTracks;
+            var selectedTracks = App.ViewModel.SelectionViewModel.SelectedTracks;
             var currentTrack = App.ViewModel.CurrentTrack;
 
             for (int i = 0; i < TracksControl.Items.Count; i++)
@@ -112,7 +112,7 @@ public sealed partial class AlbumView : UserControl
     {
         if (sender is FrameworkElement { DataContext: Track track })
         {
-            App.ViewModel.SelectTrack(track);
+            App.ViewModel.SelectionViewModel.SelectTrack(track);
         }
     }
 
@@ -122,5 +122,10 @@ public sealed partial class AlbumView : UserControl
         {
             App.ViewModel.PlayTrackCommand.Execute(track);
         }
+    }
+
+    private void AlbumNameTapped(object sender, TappedRoutedEventArgs e)
+    {
+        App.ViewModel.SelectionViewModel.SelectAlbum(Album);
     }
 }
