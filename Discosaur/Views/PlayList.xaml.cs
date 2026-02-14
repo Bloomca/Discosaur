@@ -1,4 +1,6 @@
 using System;
+using System.ComponentModel;
+using Discosaur.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -16,7 +18,21 @@ public sealed partial class PlayList : UserControl
     {
         InitializeComponent();
 
-        AlbumsControl.ItemsSource = App.ViewModel.Library;
+        UpdateItemsSource();
+        App.ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+    }
+
+    private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainViewModel.IsFilteringApplied))
+            DispatcherQueue.TryEnqueue(UpdateItemsSource);
+    }
+
+    private void UpdateItemsSource()
+    {
+        AlbumsControl.ItemsSource = App.ViewModel.IsFilteringApplied
+            ? App.ViewModel.FilteredLibrary
+            : App.ViewModel.Library;
     }
 
     private void PlayList_KeyDown(object sender, KeyRoutedEventArgs e)

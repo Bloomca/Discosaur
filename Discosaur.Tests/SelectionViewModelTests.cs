@@ -21,7 +21,7 @@ public class SelectionViewModelTests
             MakeAlbum("Album A", "A1", "A2", "A3"),
             MakeAlbum("Album B", "B1", "B2"),
         };
-        return (new SelectionViewModel(library), library);
+        return (new SelectionViewModel(() => library), library);
     }
 
     // --- SelectTrack ---
@@ -291,7 +291,7 @@ public class SelectionViewModelTests
     public void EmptyLibrary_SelectNextTrack_DoesNothing()
     {
         var library = new ObservableCollection<Album>();
-        var vm = new SelectionViewModel(library);
+        var vm = new SelectionViewModel(() => library);
 
         vm.SelectNextTrack();
 
@@ -302,7 +302,7 @@ public class SelectionViewModelTests
     public void EmptyLibrary_SelectPreviousTrack_DoesNothing()
     {
         var library = new ObservableCollection<Album>();
-        var vm = new SelectionViewModel(library);
+        var vm = new SelectionViewModel(() => library);
 
         vm.SelectPreviousTrack();
 
@@ -313,7 +313,7 @@ public class SelectionViewModelTests
     public void SingleTrackLibrary_NavigationStaysOnTrack()
     {
         var library = new ObservableCollection<Album> { MakeAlbum("Solo", "Only") };
-        var vm = new SelectionViewModel(library);
+        var vm = new SelectionViewModel(() => library);
         vm.SelectTrack(library[0].Tracks[0]);
 
         vm.SelectNextTrack();

@@ -1,121 +1,120 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Discosaur.Models;
 using Discosaur.Services;
 
-namespace Discosaur.ViewModels
+namespace Discosaur.ViewModels;
+
+public partial class SelectionViewModel : ObservableObject
 {
-    public partial class SelectionViewModel : ObservableObject
+    private readonly Func<IReadOnlyList<Album>> _getActiveLibrary;
+
+    public ObservableCollection<Track> SelectedTracks { get; } = [];
+
+    public SelectionViewModel(Func<IReadOnlyList<Album>> getActiveLibrary)
     {
-        private readonly ObservableCollection<Album> library;
+        _getActiveLibrary = getActiveLibrary;
+    }
 
-        public ObservableCollection<Track> SelectedTracks { get; } = [];
+    public void SelectTrack(Track track)
+    {
+        SelectedTracks.Clear();
+        SelectedTracks.Add(track);
+    }
 
-        public SelectionViewModel(ObservableCollection<Album> _library)
+    /// <summary>
+    /// Meant to be called when the user clicks with CTRL key pressed
+    /// </summary>
+    public void SelectExtraTrack(Track track)
+    {
+        if (SelectedTracks.Contains(track))
         {
-            library = _library;
-        }
-
-        public void SelectTrack(Track track)
+            SelectedTracks.Remove(track);
+        } else
         {
-            SelectedTracks.Clear();
             SelectedTracks.Add(track);
         }
+    }
 
-        /// <summary>
-        /// Meant to be called when the user clicks with CTRL key pressed
-        /// </summary>
-        public void SelectExtraTrack(Track track)
+    public void SelectNextTrack()
+    {
+        var anchor = SelectedTracks.LastOrDefault();
+        if (anchor == null)
         {
-            if (SelectedTracks.Contains(track))
-            {
-                SelectedTracks.Remove(track);
-            } else
-            {
-                SelectedTracks.Add(track);
-            }
+            var first = _getActiveLibrary().FirstOrDefault()?.Tracks.FirstOrDefault();
+            if (first != null) SelectTrack(first);
+            return;
         }
 
-        public void SelectNextTrack()
+        var next = LibraryService.FindNextTrack(anchor, _getActiveLibrary());
+        if (next != null) SelectTrack(next);
+    }
+
+    public void SelectPreviousTrack()
+    {
+        var anchor = SelectedTracks.LastOrDefault();
+        if (anchor == null)
         {
-            var anchor = SelectedTracks.LastOrDefault();
-            if (anchor == null)
+            var last = _getActiveLibrary().LastOrDefault()?.Tracks.LastOrDefault();
+            if (last != null) SelectTrack(last);
+            return;
+        }
+
+        var prev = LibraryService.FindPreviousTrack(anchor, _getActiveLibrary());
+        if (prev != null) SelectTrack(prev);
+    }
+
+    public void SelectFirstTrackOfNextAlbum()
+    {
+        var anchor = SelectedTracks.LastOrDefault();
+        var library = _getActiveLibrary();
+        if (anchor == null)
+        {
+            var first = library.FirstOrDefault()?.Tracks.FirstOrDefault();
+            if (first != null) SelectTrack(first);
+            return;
+        }
+
+        for (int i = 0; i < library.Count; i++)
+        {
+            if (library[i].Tracks.Contains(anchor) && i + 1 < library.Count)
             {
-                var first = library.FirstOrDefault()?.Tracks.FirstOrDefault();
-                if (first != null) SelectTrack(first);
+                var target = library[i + 1].Tracks.FirstOrDefault();
+                if (target != null) SelectTrack(target);
                 return;
             }
-
-            var next = LibraryService.FindNextTrack(anchor, library);
-            if (next != null) SelectTrack(next);
         }
+    }
 
-        public void SelectPreviousTrack()
+    public void SelectFirstTrackOfPreviousAlbum()
+    {
+        var anchor = SelectedTracks.LastOrDefault();
+        if (anchor == null) return;
+
+        var library = _getActiveLibrary();
+        for (int i = 0; i < library.Count; i++)
         {
-            var anchor = SelectedTracks.LastOrDefault();
-            if (anchor == null)
+            if (library[i].Tracks.Contains(anchor) && i - 1 >= 0)
             {
-                var last = library.LastOrDefault()?.Tracks.LastOrDefault();
-                if (last != null) SelectTrack(last);
+                var target = library[i - 1].Tracks.FirstOrDefault();
+                if (target != null) SelectTrack(target);
                 return;
             }
-
-            var prev = LibraryService.FindPreviousTrack(anchor, library);
-            if (prev != null) SelectTrack(prev);
         }
+    }
 
-        public void SelectFirstTrackOfNextAlbum()
+    public void SelectAlbum(Album album)
+    {
+        // for now, we simply replace any current selection
+        // in the future, we will add CTRL key
+        SelectedTracks.Clear();
+
+        foreach (var track in album.Tracks)
         {
-            var anchor = SelectedTracks.LastOrDefault();
-            if (anchor == null)
-            {
-                var first = library.FirstOrDefault()?.Tracks.FirstOrDefault();
-                if (first != null) SelectTrack(first);
-                return;
-            }
-
-            for (int i = 0; i < library.Count; i++)
-            {
-                if (library[i].Tracks.Contains(anchor) && i + 1 < library.Count)
-                {
-                    var target = library[i + 1].Tracks.FirstOrDefault();
-                    if (target != null) SelectTrack(target);
-                    return;
-                }
-            }
-        }
-
-        public void SelectFirstTrackOfPreviousAlbum()
-        {
-            var anchor = SelectedTracks.LastOrDefault();
-            if (anchor == null) return;
-
-            for (int i = 0; i < library.Count; i++)
-            {
-                if (library[i].Tracks.Contains(anchor) && i - 1 >= 0)
-                {
-                    var target = library[i - 1].Tracks.FirstOrDefault();
-                    if (target != null) SelectTrack(target);
-                    return;
-                }
-            }
-        }
-
-        public void SelectAlbum(Album album)
-        {
-            // for now, we simply replace any current selection
-            // in the future, we will add CTRL key
-            SelectedTracks.Clear();
-
-            foreach (var track in album.Tracks)
-            {
-                SelectedTracks.Add(track);
-            }
+            SelectedTracks.Add(track);
         }
     }
 }
