@@ -34,6 +34,9 @@ public partial class ThemeViewModel : ObservableObject
     [ObservableProperty]
     private bool _isDynamicThemeActive;
 
+    [ObservableProperty]
+    private Color _filterActiveColor;
+
     public ThemeViewModel(DispatcherQueue dispatcherQueue)
     {
         _dispatcherQueue = dispatcherQueue;
@@ -69,6 +72,7 @@ public partial class ThemeViewModel : ObservableObject
                 SelectionBrush = new SolidColorBrush(highlightColor) { Opacity = 0.30 };
                 PlayingBrush = new SolidColorBrush(highlightColor) { Opacity = 0.45 };
                 SelectedAndPlayingBrush = new SolidColorBrush(highlightColor) { Opacity = 0.60 };
+                FilterActiveColor = highlightColor;
                 IsDynamicThemeActive = true;
             });
         }

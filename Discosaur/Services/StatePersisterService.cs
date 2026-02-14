@@ -177,6 +177,14 @@ public class StatePersisterService
         // Restore volume settings
         vm.PlaybackViewModel.SetVolume(state.Settings.VolumeLevel);
         vm.PlaybackViewModel.SetReducedVolumeLevel(state.Settings.ReducedVolumeLevel);
+
+        // Restore filter
+        if (state.Settings.Filtering is { HasAnyCriteria: true })
+        {
+            vm.FilterConfiguration = state.Settings.Filtering;
+            vm.RebuildFilteredLibrary();
+            vm.IsFilteringApplied = true;
+        }
     }
 
     // --- State capture ---
@@ -233,6 +241,9 @@ public class StatePersisterService
         // Volume settings
         state.Settings.VolumeLevel = vm.PlaybackViewModel.VolumeLevel;
         state.Settings.ReducedVolumeLevel = vm.PlaybackViewModel.ReducedVolumeLevel;
+
+        // Filter settings
+        state.Settings.Filtering = vm.IsFilteringApplied ? vm.FilterConfiguration : null;
 
         return state;
     }

@@ -1,6 +1,6 @@
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Discosaur.Models;
@@ -19,6 +19,21 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<Album> Library { get; } = [];
     public ObservableCollection<Track> Uncategorized { get; } = [];
 
+    // --- Filtering ---
+
+    [ObservableProperty]
+    private bool _isFilteringApplied;
+
+    [ObservableProperty]
+    private FilterConfiguration? _filterConfiguration;
+
+    public ObservableCollection<Album> FilteredLibrary { get; } = [];
+
+    public IReadOnlyList<Album> GetActiveLibrary()
+        => IsFilteringApplied ? FilteredLibrary : Library;
+
+    // --- UI state ---
+
     [ObservableProperty]
     private bool _isLibraryExpanded = true;
 
@@ -29,8 +44,8 @@ public partial class MainViewModel : ObservableObject
     {
         _libraryService = libraryService;
 
-        SelectionViewModel = new SelectionViewModel(Library);
-        PlaybackViewModel = new PlaybackViewModel(audioPlayer, Library);
+        SelectionViewModel = new SelectionViewModel(GetActiveLibrary);
+        PlaybackViewModel = new PlaybackViewModel(audioPlayer, GetActiveLibrary);
     }
 
     public void AddFolderToLibrary(string folderPath, string? folderToken = null)
@@ -54,8 +69,46 @@ public partial class MainViewModel : ObservableObject
             }
         }
 
+        if (IsFilteringApplied)
+            RebuildFilteredLibrary();
+
         App.StatePersister.ScheduleSave();
     }
+
+    // --- Filter commands ---
+
+    public void ApplyFilter(FilterConfiguration config)
+    {
+        FilterConfiguration = config;
+        RebuildFilteredLibrary();
+        IsFilteringApplied = true;
+        App.StatePersister.ScheduleSave();
+    }
+
+    public void ClearFilter()
+    {
+        FilterConfiguration = null;
+        FilteredLibrary.Clear();
+        IsFilteringApplied = false;
+        App.StatePersister.ScheduleSave();
+    }
+
+    public void RebuildFilteredLibrary()
+    {
+        if (FilterConfiguration == null || !FilterConfiguration.HasAnyCriteria)
+        {
+            FilteredLibrary.Clear();
+            IsFilteringApplied = false;
+            return;
+        }
+
+        var filtered = LibraryService.ApplyFilter(Library, FilterConfiguration);
+        FilteredLibrary.Clear();
+        foreach (var album in filtered)
+            FilteredLibrary.Add(album);
+    }
+
+    // --- Selection / Playback ---
 
     [RelayCommand]
     private void PlaySelectedTrack()
@@ -100,6 +153,9 @@ public partial class MainViewModel : ObservableObject
                 }
             }
         }
+
+        if (IsFilteringApplied)
+            RebuildFilteredLibrary();
 
         if (wasPlaying)
         {

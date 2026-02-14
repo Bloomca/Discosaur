@@ -22,6 +22,9 @@ public class AppSettings
 
     [JsonPropertyName("reducedVolumeLevel")]
     public int ReducedVolumeLevel { get; set; } = 30;
+
+    [JsonPropertyName("filtering")]
+    public FilterConfiguration? Filtering { get; set; }
 }
 
 public class PersistedAlbum

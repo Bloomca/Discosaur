@@ -190,6 +190,59 @@ public class LibraryService
         return null;
     }
 
+    public static List<Album> ApplyFilter(IReadOnlyList<Album> library, FilterConfiguration config)
+    {
+        var result = new List<Album>();
+
+        foreach (var album in library)
+        {
+            // Album-level filters (skip entire album if no match)
+            if (!string.IsNullOrWhiteSpace(config.AlbumNameSearch)
+                && (album.Name == null || !album.Name.Contains(config.AlbumNameSearch, StringComparison.OrdinalIgnoreCase)))
+                continue;
+
+            if (config.SelectedAlbumNames is { Count: > 0 }
+                && (album.Name == null || !config.SelectedAlbumNames.Contains(album.Name)))
+                continue;
+
+            if (config.YearFrom.HasValue && (!album.Year.HasValue || album.Year < config.YearFrom))
+                continue;
+
+            if (config.YearTo.HasValue && (!album.Year.HasValue || album.Year > config.YearTo))
+                continue;
+
+            // Track-level filters (produce partial album)
+            IEnumerable<Track> matchingTracks = album.Tracks;
+
+            if (!string.IsNullOrWhiteSpace(config.SongNameSearch))
+                matchingTracks = matchingTracks.Where(t =>
+                    t.Title.Contains(config.SongNameSearch, StringComparison.OrdinalIgnoreCase));
+
+            if (config.SelectedGenres is { Count: > 0 })
+                matchingTracks = matchingTracks.Where(t =>
+                    t.Genre != null && config.SelectedGenres.Contains(t.Genre));
+
+            var tracks = matchingTracks.ToList();
+            if (tracks.Count == 0) continue;
+
+            var filteredAlbum = new Album
+            {
+                Name = album.Name ?? string.Empty,
+                Artist = album.Artist,
+                Year = album.Year,
+                FolderToken = album.FolderToken,
+                CoverArtPath = album.CoverArtPath,
+            };
+
+            foreach (var track in tracks)
+                filteredAlbum.Tracks.Add(track);
+
+            result.Add(filteredAlbum);
+        }
+
+        return result;
+    }
+
     public static Album? FindAlbumForTrack(Track? track, IReadOnlyList<Album> library)
     {
         if (track == null) return null;

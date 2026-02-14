@@ -1,5 +1,5 @@
 using System;
-using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -19,7 +19,7 @@ public enum VolumeColorMode
 public partial class PlaybackViewModel : ObservableObject
 {
     private readonly AudioPlayerService _audioPlayer;
-    private readonly ObservableCollection<Album> _library;
+    private readonly Func<IReadOnlyList<Album>> _getActiveLibrary;
     private static readonly Random _random = new();
 
     [ObservableProperty]
@@ -48,13 +48,13 @@ public partial class PlaybackViewModel : ObservableObject
     [ObservableProperty]
     private VolumeColorMode _volumeColorMode;
 
-    public string? NextTrackTitle => LibraryService.FindNextTrack(CurrentTrack, _library)?.Title;
-    public string? PreviousTrackTitle => LibraryService.FindPreviousTrack(CurrentTrack, _library)?.Title;
+    public string? NextTrackTitle => LibraryService.FindNextTrack(CurrentTrack, _getActiveLibrary())?.Title;
+    public string? PreviousTrackTitle => LibraryService.FindPreviousTrack(CurrentTrack, _getActiveLibrary())?.Title;
 
-    public PlaybackViewModel(AudioPlayerService audioPlayer, ObservableCollection<Album> library)
+    public PlaybackViewModel(AudioPlayerService audioPlayer, Func<IReadOnlyList<Album>> getActiveLibrary)
     {
         _audioPlayer = audioPlayer;
-        _library = library;
+        _getActiveLibrary = getActiveLibrary;
 
         _audioPlayer.PlaybackStateChanged += OnPlaybackStateChanged;
         _audioPlayer.TrackEnded += OnTrackEnded;
@@ -64,7 +64,8 @@ public partial class PlaybackViewModel : ObservableObject
     {
         CurrentTrack = _audioPlayer.CurrentTrack;
         IsPlaying = _audioPlayer.IsPlaying;
-        CurrentAlbumCoverArtPath = LibraryService.FindAlbumForTrack(CurrentTrack, _library)?.CoverArtPath;
+        // Use full Library for cover art so it always resolves even when the playing track is outside the current filter
+        CurrentAlbumCoverArtPath = LibraryService.FindAlbumForTrack(CurrentTrack, App.ViewModel.Library)?.CoverArtPath;
         OnPropertyChanged(nameof(NextTrackTitle));
         OnPropertyChanged(nameof(PreviousTrackTitle));
         App.StatePersister.ScheduleSave();
@@ -85,11 +86,12 @@ public partial class PlaybackViewModel : ObservableObject
             return;
         }
 
-        var next = LibraryService.FindNextTrack(_audioPlayer.CurrentTrack, _library);
+        var activeLibrary = _getActiveLibrary();
+        var next = LibraryService.FindNextTrack(_audioPlayer.CurrentTrack, activeLibrary);
 
         if (next == null && RepeatMode == RepeatMode.Album)
         {
-            var album = LibraryService.FindAlbumForTrack(_audioPlayer.CurrentTrack, _library);
+            var album = LibraryService.FindAlbumForTrack(_audioPlayer.CurrentTrack, activeLibrary);
             next = album?.Tracks.FirstOrDefault();
         }
 
@@ -120,7 +122,7 @@ public partial class PlaybackViewModel : ObservableObject
         }
         else
         {
-            var firstTrack = CurrentTrack ?? _library.FirstOrDefault()?.Tracks.FirstOrDefault();
+            var firstTrack = CurrentTrack ?? _getActiveLibrary().FirstOrDefault()?.Tracks.FirstOrDefault();
             if (firstTrack != null)
             {
                 await _audioPlayer.PlayAsync(firstTrack);
@@ -144,11 +146,12 @@ public partial class PlaybackViewModel : ObservableObject
             return;
         }
 
-        var next = LibraryService.FindNextTrack(_audioPlayer.CurrentTrack, _library);
+        var activeLibrary = _getActiveLibrary();
+        var next = LibraryService.FindNextTrack(_audioPlayer.CurrentTrack, activeLibrary);
 
         if (next == null && RepeatMode == RepeatMode.Album)
         {
-            var album = LibraryService.FindAlbumForTrack(_audioPlayer.CurrentTrack, _library);
+            var album = LibraryService.FindAlbumForTrack(_audioPlayer.CurrentTrack, activeLibrary);
             next = album?.Tracks.FirstOrDefault();
         }
 
@@ -159,11 +162,12 @@ public partial class PlaybackViewModel : ObservableObject
     [RelayCommand]
     private async Task PlayPrevious()
     {
-        var prev = LibraryService.FindPreviousTrack(_audioPlayer.CurrentTrack, _library);
+        var activeLibrary = _getActiveLibrary();
+        var prev = LibraryService.FindPreviousTrack(_audioPlayer.CurrentTrack, activeLibrary);
 
         if (prev == null && RepeatMode == RepeatMode.Album)
         {
-            var album = LibraryService.FindAlbumForTrack(_audioPlayer.CurrentTrack, _library);
+            var album = LibraryService.FindAlbumForTrack(_audioPlayer.CurrentTrack, activeLibrary);
             prev = album?.Tracks.LastOrDefault();
         }
 
@@ -242,7 +246,8 @@ public partial class PlaybackViewModel : ObservableObject
     public void SetCurrentTrackDisplay(Track track)
     {
         CurrentTrack = track;
-        CurrentAlbumCoverArtPath = LibraryService.FindAlbumForTrack(track, _library)?.CoverArtPath;
+        // Use full Library for cover art resolution during restore
+        CurrentAlbumCoverArtPath = LibraryService.FindAlbumForTrack(track, App.ViewModel.Library)?.CoverArtPath;
         OnPropertyChanged(nameof(NextTrackTitle));
         OnPropertyChanged(nameof(PreviousTrackTitle));
     }
@@ -259,7 +264,7 @@ public partial class PlaybackViewModel : ObservableObject
 
     private async Task PlayRandomTrackAsync()
     {
-        var allTracks = _library.SelectMany(a => a.Tracks).ToList();
+        var allTracks = _getActiveLibrary().SelectMany(a => a.Tracks).ToList();
         if (allTracks.Count == 0) return;
 
         var candidates = allTracks.Where(t => t != _audioPlayer.CurrentTrack).ToList();
