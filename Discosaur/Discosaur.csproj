@@ -11,6 +11,9 @@
     <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
+    <!-- Disable auto module initializer so Discosaur.dll can be loaded in test contexts.
+         DeploymentManager.Initialize() is called explicitly in App.OnLaunched instead. -->
+    <WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="Views\Player.xaml" />
