@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Discosaur.Models;
+using Windows.UI;
 
 namespace Discosaur.Views;
 
@@ -23,6 +24,7 @@ public sealed partial class Player : UserControl
         Playback.PropertyChanged += PlaybackViewModel_PropertyChanged;
         ViewModel.PropertyChanged += ViewModel_PropertyChanged;
         App.PlayerViewModel.PropertyChanged += PlayerViewModel_PropertyChanged;
+        App.ThemeViewModel.PropertyChanged += ThemeViewModel_PropertyChanged;
 
         ProgressSlider.AddHandler(PointerPressedEvent,
             new PointerEventHandler(ProgressSlider_PointerPressed), true);
@@ -35,6 +37,7 @@ public sealed partial class Player : UserControl
         UpdateTooltips();
         UpdateVolumeVisual();
         UpdateVolumeTooltip();
+        UpdateThemeColors();
     }
 
     private void PlaybackViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -75,6 +78,35 @@ public sealed partial class Player : UserControl
     private void PlayerViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         DispatcherQueue.TryEnqueue(UpdateProgress);
+    }
+
+    private void ThemeViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        switch (e.PropertyName)
+        {
+            case nameof(ThemeViewModel.PrimaryTextColor):
+            case nameof(ThemeViewModel.SecondaryTextColor):
+            case nameof(ThemeViewModel.IsDynamicThemeActive):
+                DispatcherQueue.TryEnqueue(UpdateThemeColors);
+                break;
+        }
+    }
+
+    private void UpdateThemeColors()
+    {
+        var theme = App.ThemeViewModel;
+        if (theme.IsDynamicThemeActive)
+        {
+            TrackNameText.Foreground = new SolidColorBrush(theme.PrimaryTextColor);
+            BandNameText.Foreground = new SolidColorBrush(theme.SecondaryTextColor);
+            TimeText.Foreground = new SolidColorBrush(theme.PrimaryTextColor);
+        }
+        else
+        {
+            TrackNameText.Foreground = (Brush)Application.Current.Resources["SystemControlForegroundBaseHighBrush"];
+            BandNameText.Foreground = new SolidColorBrush(Color.FromArgb(255, 0x99, 0x99, 0x99));
+            TimeText.Foreground = (Brush)Application.Current.Resources["SystemControlForegroundBaseHighBrush"];
+        }
     }
 
     private void UpdateTrackName()

@@ -1,6 +1,7 @@
 using Discosaur.ViewModels;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
 using Windows.Graphics;
 
 namespace Discosaur;
@@ -17,6 +18,7 @@ public sealed partial class MainWindow : Window
         AppWindow.Resize(new SizeInt32(DefaultWidth, ExpandedHeight));
 
         App.ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+        App.ThemeViewModel.PropertyChanged += ThemeViewModel_PropertyChanged;
         Closed += MainWindow_Closed;
     }
 
@@ -62,5 +64,21 @@ public sealed partial class MainWindow : Window
         {
             presenter.IsAlwaysOnTop = App.ViewModel.IsAlwaysOnTop;
         }
+    }
+
+    private void ThemeViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(ThemeViewModel.IsDynamicThemeActive) or nameof(ThemeViewModel.BackgroundColor))
+        {
+            DispatcherQueue.TryEnqueue(UpdateBackground);
+        }
+    }
+
+    private void UpdateBackground()
+    {
+        if (App.ThemeViewModel.IsDynamicThemeActive)
+            RootGrid.Background = new SolidColorBrush(App.ThemeViewModel.BackgroundColor);
+        else
+            RootGrid.Background = null;
     }
 }

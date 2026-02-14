@@ -229,6 +229,14 @@ public partial class PlaybackViewModel : ObservableObject
         App.StatePersister.ScheduleSave();
     }
 
+    partial void OnCurrentAlbumCoverArtPathChanged(string? value)
+    {
+        if (!string.IsNullOrEmpty(value))
+            App.ThemeViewModel.ApplyDynamicThemeFromArtwork(value);
+        else
+            App.ThemeViewModel.ResetToDefault();
+    }
+
     // --- Display (used by restore) ---
 
     public void SetCurrentTrackDisplay(Track track)
