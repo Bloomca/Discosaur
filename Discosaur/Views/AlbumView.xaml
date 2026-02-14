@@ -9,7 +9,8 @@
     mc:Ignorable="d">
 
     <StackPanel Margin="0,8">
-        <TextBlock Text="{x:Bind Album.DisplayName}"
+        <TextBlock x:Name="AlbumHeaderText"
+                   Text="{x:Bind Album.DisplayName}"
                    FontWeight="SemiBold"
                    FontSize="10"
                    Margin="0,0,0,4"

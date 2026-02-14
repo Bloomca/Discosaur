@@ -11,11 +11,6 @@ namespace Discosaur.Views;
 
 public sealed partial class AlbumView : UserControl
 {
-    private static readonly Brush SelectedBrush = new SolidColorBrush(Colors.CornflowerBlue) { Opacity = 0.3 };
-    private static readonly Brush TransparentBrush = new SolidColorBrush(Colors.Transparent);
-    private static Brush? _playingBrush;
-    private static Brush? _selectedAndPlayingBrush;
-
     public static readonly DependencyProperty AlbumProperty =
         DependencyProperty.Register(nameof(Album), typeof(Album), typeof(AlbumView), new PropertyMetadata(null));
 
@@ -28,29 +23,12 @@ public sealed partial class AlbumView : UserControl
     public AlbumView()
     {
         InitializeComponent();
-        InitAccentBrushes();
         App.ViewModel.SelectionViewModel.SelectedTracks.CollectionChanged += (_, _) => UpdateSelectionVisuals();
         App.ViewModel.PlaybackViewModel.PropertyChanged += PlaybackViewModel_PropertyChanged;
+        App.ThemeViewModel.PropertyChanged += ThemeViewModel_PropertyChanged;
 
         UpdateSelectionVisuals();
-    }
-
-    private static void InitAccentBrushes()
-    {
-        if (_playingBrush != null) return;
-
-        Color accent;
-        if (Application.Current.Resources.TryGetValue("SystemAccentColorLight2", out var res) && res is Color c)
-        {
-            accent = c;
-        }
-        else
-        {
-            accent = Color.FromArgb(255, 0, 120, 212);
-        }
-
-        _playingBrush = new SolidColorBrush(accent) { Opacity = 0.25 };
-        _selectedAndPlayingBrush = new SolidColorBrush(accent) { Opacity = 0.45 };
+        UpdateTextColors();
     }
 
     private void PlaybackViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -61,12 +39,54 @@ public sealed partial class AlbumView : UserControl
         }
     }
 
+    private void ThemeViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        switch (e.PropertyName)
+        {
+            case nameof(ThemeViewModel.SelectionBrush):
+            case nameof(ThemeViewModel.PlayingBrush):
+            case nameof(ThemeViewModel.SelectedAndPlayingBrush):
+            case nameof(ThemeViewModel.IsDynamicThemeActive):
+                DispatcherQueue.TryEnqueue(UpdateSelectionVisuals);
+                DispatcherQueue.TryEnqueue(UpdateTextColors);
+                break;
+            case nameof(ThemeViewModel.PrimaryTextColor):
+            case nameof(ThemeViewModel.SecondaryTextColor):
+                DispatcherQueue.TryEnqueue(UpdateSelectionVisuals);
+                DispatcherQueue.TryEnqueue(UpdateTextColors);
+                break;
+        }
+    }
+
     private void UpdateSelectionVisuals()
     {
         DispatcherQueue.TryEnqueue(() =>
         {
+            var theme = App.ThemeViewModel;
             var selectedTracks = App.ViewModel.SelectionViewModel.SelectedTracks;
             var currentTrack = App.ViewModel.PlaybackViewModel.CurrentTrack;
+
+            Brush selectionBrush, playingBrush, selectedAndPlayingBrush;
+            if (theme.IsDynamicThemeActive)
+            {
+                selectionBrush = theme.SelectionBrush;
+                playingBrush = theme.PlayingBrush;
+                selectedAndPlayingBrush = theme.SelectedAndPlayingBrush;
+            }
+            else
+            {
+                Color accent;
+                if (Application.Current.Resources.TryGetValue("SystemAccentColorLight2", out var res) && res is Color c)
+                    accent = c;
+                else
+                    accent = Color.FromArgb(255, 0, 120, 212);
+
+                selectionBrush = new SolidColorBrush(Colors.CornflowerBlue) { Opacity = 0.3 };
+                playingBrush = new SolidColorBrush(accent) { Opacity = 0.25 };
+                selectedAndPlayingBrush = new SolidColorBrush(accent) { Opacity = 0.45 };
+            }
+
+            var transparentBrush = new SolidColorBrush(Colors.Transparent);
 
             for (int i = 0; i < TracksControl.Items.Count; i++)
             {
@@ -82,15 +102,50 @@ public sealed partial class AlbumView : UserControl
                 bool isPlaying = track == currentTrack;
 
                 if (isSelected && isPlaying)
-                    border.Background = _selectedAndPlayingBrush;
+                    border.Background = selectedAndPlayingBrush;
                 else if (isPlaying)
-                    border.Background = _playingBrush;
+                    border.Background = playingBrush;
                 else if (isSelected)
-                    border.Background = SelectedBrush;
+                    border.Background = selectionBrush;
                 else
-                    border.Background = TransparentBrush;
+                    border.Background = transparentBrush;
+
+                UpdateTrackTextColors(border, theme);
             }
         });
+    }
+
+    private static void UpdateTrackTextColors(Border border, ThemeViewModel theme)
+    {
+        var grid = FindChild<Grid>(border);
+        if (grid == null) return;
+
+        for (int j = 0; j < VisualTreeHelper.GetChildrenCount(grid); j++)
+        {
+            if (VisualTreeHelper.GetChild(grid, j) is not TextBlock tb) continue;
+
+            if (theme.IsDynamicThemeActive)
+            {
+                tb.Foreground = Grid.GetColumn(tb) == 0
+                    ? new SolidColorBrush(theme.SecondaryTextColor)
+                    : new SolidColorBrush(theme.PrimaryTextColor);
+            }
+            else
+            {
+                tb.Foreground = Grid.GetColumn(tb) == 0
+                    ? new SolidColorBrush(Color.FromArgb(255, 0x99, 0x99, 0x99))
+                    : (Brush)Application.Current.Resources["SystemControlForegroundBaseHighBrush"];
+            }
+        }
+    }
+
+    private void UpdateTextColors()
+    {
+        var theme = App.ThemeViewModel;
+        if (theme.IsDynamicThemeActive)
+            AlbumHeaderText.Foreground = new SolidColorBrush(theme.SecondaryTextColor);
+        else
+            AlbumHeaderText.Foreground = (Brush)Application.Current.Resources["SystemControlForegroundBaseMediumBrush"];
     }
 
     private static T? FindChild<T>(DependencyObject parent) where T : DependencyObject

@@ -16,6 +16,7 @@ namespace Discosaur
 
         public static MainViewModel ViewModel { get; private set; } = null!;
         public static PlayerViewModel PlayerViewModel { get; private set; } = null!;
+        public static ThemeViewModel ThemeViewModel { get; private set; } = null!;
         public static AudioPlayerService AudioPlayer { get; private set; } = null!;
         public static LibraryService LibraryService { get; private set; } = null!;
         public static StatePersisterService StatePersister { get; private set; } = null!;
@@ -48,6 +49,7 @@ namespace Discosaur
             LibraryService = new LibraryService();
             ViewModel = new MainViewModel(AudioPlayer, LibraryService);
             PlayerViewModel = new PlayerViewModel(AudioPlayer, DispatcherQueue.GetForCurrentThread());
+            ThemeViewModel = new ThemeViewModel(DispatcherQueue.GetForCurrentThread());
 
             StatePersister = new StatePersisterService();
             RestoreState();
