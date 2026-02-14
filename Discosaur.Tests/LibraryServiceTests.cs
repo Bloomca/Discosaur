@@ -209,4 +209,127 @@ public class LibraryServiceTests
 
         Assert.Equal(["B2", "B1", "A3", "A2", "A1"], visited);
     }
+
+    // --- GroupIntoAlbums ---
+
+    [Fact]
+    public void GroupIntoAlbums_GroupsByAlbumTitle()
+    {
+        var tracks = new List<Track>
+        {
+            new() { FileName = "t1.mp3", AlbumTitle = "Alpha" },
+            new() { FileName = "t2.mp3", AlbumTitle = "Beta" },
+            new() { FileName = "t3.mp3", AlbumTitle = "Alpha" },
+        };
+
+        var albums = LibraryService.GroupIntoAlbums(tracks);
+
+        Assert.Equal(2, albums.Count);
+        var alpha = albums.First(a => a.Name == "Alpha");
+        Assert.Equal(2, alpha.Tracks.Count);
+        var beta = albums.First(a => a.Name == "Beta");
+        Assert.Single(beta.Tracks);
+    }
+
+    [Fact]
+    public void GroupIntoAlbums_TracksWithoutAlbum_GoToUncategorized()
+    {
+        var tracks = new List<Track>
+        {
+            new() { FileName = "a.mp3", AlbumTitle = null },
+            new() { FileName = "b.mp3", AlbumTitle = null },
+        };
+
+        var albums = LibraryService.GroupIntoAlbums(tracks);
+
+        Assert.Single(albums);
+        Assert.True(albums[0].IsUncategorized);
+        Assert.Equal(2, albums[0].Tracks.Count);
+    }
+
+    [Fact]
+    public void GroupIntoAlbums_SortsByTrackNumber()
+    {
+        var tracks = new List<Track>
+        {
+            new() { FileName = "c.mp3", AlbumTitle = "A", TrackNumber = 3 },
+            new() { FileName = "a.mp3", AlbumTitle = "A", TrackNumber = 1 },
+            new() { FileName = "b.mp3", AlbumTitle = "A", TrackNumber = 2 },
+        };
+
+        var albums = LibraryService.GroupIntoAlbums(tracks);
+        var titles = albums[0].Tracks.Select(t => t.FileName).ToList();
+
+        Assert.Equal(["a.mp3", "b.mp3", "c.mp3"], titles);
+    }
+
+    [Fact]
+    public void GroupIntoAlbums_TracksWithoutNumber_GoAfterNumbered()
+    {
+        var tracks = new List<Track>
+        {
+            new() { FileName = "no-num.mp3", AlbumTitle = "A", TrackNumber = null },
+            new() { FileName = "track2.mp3", AlbumTitle = "A", TrackNumber = 2 },
+            new() { FileName = "track1.mp3", AlbumTitle = "A", TrackNumber = 1 },
+        };
+
+        var albums = LibraryService.GroupIntoAlbums(tracks);
+        var files = albums[0].Tracks.Select(t => t.FileName).ToList();
+
+        Assert.Equal(["track1.mp3", "track2.mp3", "no-num.mp3"], files);
+    }
+
+    [Fact]
+    public void GroupIntoAlbums_SameTrackNumber_FallsBackToFileName()
+    {
+        var tracks = new List<Track>
+        {
+            new() { FileName = "z.mp3", AlbumTitle = "A", TrackNumber = 1 },
+            new() { FileName = "a.mp3", AlbumTitle = "A", TrackNumber = 1 },
+        };
+
+        var albums = LibraryService.GroupIntoAlbums(tracks);
+        var files = albums[0].Tracks.Select(t => t.FileName).ToList();
+
+        Assert.Equal(["a.mp3", "z.mp3"], files);
+    }
+
+    [Fact]
+    public void GroupIntoAlbums_AlbumMetadata_TakenFromFirstTrack()
+    {
+        var tracks = new List<Track>
+        {
+            new() { FileName = "t2.mp3", AlbumTitle = "A", TrackNumber = 2, Artist = "Band2", Year = 2000 },
+            new() { FileName = "t1.mp3", AlbumTitle = "A", TrackNumber = 1, Artist = "Band1", Year = 1999 },
+        };
+
+        var albums = LibraryService.GroupIntoAlbums(tracks);
+
+        // First track after sorting is t1.mp3 (TrackNumber 1)
+        Assert.Equal("Band1", albums[0].Artist);
+        Assert.Equal((uint)1999, albums[0].Year);
+    }
+
+    [Fact]
+    public void GroupIntoAlbums_EmptyList_ReturnsEmpty()
+    {
+        var albums = LibraryService.GroupIntoAlbums([]);
+        Assert.Empty(albums);
+    }
+
+    [Fact]
+    public void GroupIntoAlbums_MixedCategorizedAndUncategorized()
+    {
+        var tracks = new List<Track>
+        {
+            new() { FileName = "a.mp3", AlbumTitle = "Real Album" },
+            new() { FileName = "b.mp3", AlbumTitle = null },
+        };
+
+        var albums = LibraryService.GroupIntoAlbums(tracks);
+
+        Assert.Equal(2, albums.Count);
+        Assert.Contains(albums, a => a.Name == "Real Album");
+        Assert.Contains(albums, a => a.IsUncategorized);
+    }
 }

@@ -86,7 +86,7 @@ public class LibraryService
         return track;
     }
 
-    private static List<Album> GroupIntoAlbums(List<Track> tracks)
+    public static List<Album> GroupIntoAlbums(List<Track> tracks)
     {
         var albums = new List<Album>();
 
