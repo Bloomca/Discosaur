@@ -1,10 +1,11 @@
-using System.ComponentModel;
-using System.Linq;
 using Discosaur.Models;
 using Discosaur.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using System;
+using System.ComponentModel;
+using System.Linq;
 
 namespace Discosaur.Views;
 
@@ -15,6 +16,8 @@ public sealed partial class FilterButton : UserControl
         InitializeComponent();
 
         UpdateVisual();
+
+        FilterBtn.Visibility = Visibility.Visible;
 
         App.ViewModel.PropertyChanged += ViewModel_PropertyChanged;
         App.ThemeViewModel.PropertyChanged += ThemeViewModel_PropertyChanged;
@@ -41,19 +44,23 @@ public sealed partial class FilterButton : UserControl
         var theme = App.ThemeViewModel;
         if (App.ViewModel.IsFilteringApplied)
         {
-            if (theme.IsDynamicThemeActive)
-                FilterBtn.Foreground = new SolidColorBrush(theme.FilterActiveColor);
-            else
-                FilterBtn.Foreground = new SolidColorBrush(
-                    Windows.UI.Color.FromArgb(255, 0, 120, 212));
+            ApplyButtonColour(new SolidColorBrush(theme.FilterActiveColor));
         }
         else
         {
-            if (theme.IsDynamicThemeActive)
-                FilterBtn.Foreground = new SolidColorBrush(theme.PrimaryTextColor);
-            else
-                FilterBtn.ClearValue(Control.ForegroundProperty);
+            FilterBtn.Resources.Remove("ButtonBackground");
+            FilterBtn.Resources.Remove("ButtonBackgroundPointerOver");
+            FilterBtn.Resources.Remove("ButtonBackgroundPressed");
+            FilterBtn.ClearValue(Control.BackgroundProperty);
         }
+    }
+
+    private void ApplyButtonColour(SolidColorBrush colour)
+    {
+        FilterBtn.Background = colour;
+        FilterBtn.Resources["ButtonBackground"] = colour;
+        FilterBtn.Resources["ButtonBackgroundPointerOver"] = colour;
+        FilterBtn.Resources["ButtonBackgroundPressed"] = colour;
     }
 
     private void FilterBtn_Click(object sender, RoutedEventArgs e)

@@ -7,5 +7,5 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Button x:Name="FilterBtn" Click="FilterBtn_Click">Filters</Button>
+    <Button x:Name="FilterBtn" Click="FilterBtn_Click" Visibility="Collapsed">Filters</Button>
 </UserControl>
