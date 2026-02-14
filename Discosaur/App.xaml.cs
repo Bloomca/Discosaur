@@ -3,6 +3,7 @@ using Discosaur.Services;
 using Discosaur.ViewModels;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+using Microsoft.Windows.ApplicationModel.WindowsAppRuntime;
 using WinRT.Interop;
 
 namespace Discosaur
@@ -40,6 +41,8 @@ namespace Discosaur
         }
         protected override void OnLaunched(LaunchActivatedEventArgs args)
         {
+            DeploymentManager.Initialize();
+
             // Create singleton services and ViewModel once at startup
             AudioPlayer = new AudioPlayerService();
             LibraryService = new LibraryService();
