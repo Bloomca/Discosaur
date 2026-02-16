@@ -8,9 +8,11 @@ This is a Windows Desktop application built with the WinUI3 framework to play mu
 
 You can see the dynamic theme in action, as it adapts to the artwork:
 
-![Screenshot 1](./discosaur_screen_1.png)
-![Screenshot 1](./discosaur_screen_2.png)
-![Screenshot 1](./discosaur_screen_3.png)
+<div style="display: flex; flex-direction: row;">
+<a target="_blank" rel="noopener noreferrer" href="./discosaur_screen_1.png"><img src="./discosaur_screen_1.png" alt="Screenshot 1" style="max-width: 100%;"></a>
+<a target="_blank" rel="noopener noreferrer" href="./discosaur_screen_2.png"><img src="./discosaur_screen_2.png" alt="Screenshot 2" style="max-width: 100%;"></a>
+<a target="_blank" rel="noopener noreferrer" href="./discosaur_screen_3.png"><img src="./discosaur_screen_3.png" alt="Screenshot 3" style="max-width: 100%;"></a>
+</div>
 
 ## Technologies used
 
